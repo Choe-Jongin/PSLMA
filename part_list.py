@@ -8,7 +8,7 @@ ch = 16
 ch_size = ssd//ch
 step = ch_size
 
-def main(N,full = False):
+def part_list(N,full = False):
     avg=ssd/N
     pivot=((avg+(step-0.001))//step*step)
     min=int((pivot/2+(step-0.001))//step*step)
@@ -26,16 +26,19 @@ def main(N,full = False):
     if full == False :
         psl = minimum_sols
 
+    ret = ""
     for party in psl:
         mount_str = ""
         for p in party :
             mount_str += str(p//ch_size) + " "
         
-        print(mount_str)
+        ret += mount_str +"\n"
+    print(ret)
+    return ret
 
 #entry point(first call)
 if __name__ == '__main__':
     if len(sys.argv) <= 2 :
-        main(int(sys.argv[1]))
+        part_list(int(sys.argv[1]))
     else:
-        main(int(sys.argv[1]), sys.argv[2]=="full")
+        part_list(int(sys.argv[1]), sys.argv[2]=="full")
