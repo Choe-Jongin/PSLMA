@@ -33,7 +33,7 @@ def part_list(N,full = False):
             mount_str += str(p//ch_size) + " "
             
         print(mount_str)
-        ret += mount_str
+        ret.append(mount_str)
     return ret
 
 #entry point(first call)

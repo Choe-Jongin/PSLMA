@@ -12,13 +12,13 @@ N=3
 pre=[]
 run=[]
 
-pre+=("bash /script/test_ready.sh 0")
-pre+=("bash /script/test_ready.sh 1")
-pre+=("bash /script/test_ready.sh 2")
+pre.append("bash /script/test_ready.sh 0")
+pre.append("bash /script/test_ready.sh 1")
+pre.append("bash /script/test_ready.sh 2")
 
-pre+=("bash /script/test_run.sh 0 1 "+str(10))
-pre+=("bash /script/test_run.sh 0 2 "+str(10))
-pre+=("bash /script/test_run.sh 0 3 "+str(10))
+pre.append("bash /script/test_run.sh 0 1 "+str(10))
+pre.append("bash /script/test_run.sh 0 2 "+str(10))
+pre.append("bash /script/test_run.sh 0 3 "+str(10))
 
 ## send command to femu vm ##
 def ssh_exec(command):
