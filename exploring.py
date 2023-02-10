@@ -23,7 +23,7 @@ pre.append("bash /script/test_run.sh 0 3 "+str(10))
 ## send command to femu vm ##
 def ssh_exec(command):
     print( "[ DEBUG ]ssh:"+command )
-    os.system("ssh -p 8080 femu@localhost "+command)
+    os.system('ssh -p 8080 femu@localhost "'+command+'"')
 
 ## load dataset ##
 def prepare_tast():
