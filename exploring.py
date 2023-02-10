@@ -16,9 +16,9 @@ pre.append("bash /script/test_pre.sh 0")
 pre.append("bash /script/test_pre.sh 1")
 pre.append("bash /script/test_pre.sh 2")
 
-run.append("bash /script/test_run.sh 0 1 "+str(10))
-run.append("bash /script/test_run.sh 1 1 "+str(10))
-run.append("bash /script/test_run.sh 2 1 "+str(10))
+run.append("bash /script/test_run.sh 0 1 "+str(20))
+run.append("bash /script/test_run.sh 1 1 "+str(20))
+run.append("bash /script/test_run.sh 2 1 "+str(20))
 
 ## send command to femu vm ##
 def ssh_exec(command):
@@ -60,7 +60,7 @@ def copy_data_file(partitioning):
     for i in range(N):
         data_file_name = DATA_DIR+"/wl_"+partitioning+str(i)+".txt"
         os.system("touch " + data_file_name)
-        ssh_exec("sudo cat /pblk-cast_perf/mydev"+str(i)+".data > " + data_file_name)
+        os.system("ssh -p 8080 femu@localhost sudo cat /pblk-cast_perf/mydev"+str(i)+".data" > data_file_name)
 
 #### MAIN ####
 def exploing(full = False):
