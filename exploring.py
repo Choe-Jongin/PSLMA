@@ -22,7 +22,7 @@ run.append("bash /script/test_run.sh 2 1 "+str(10))
 
 ## send command to femu vm ##
 def ssh_exec(command):
-    print( "[ DEBUG ]ssh:"+command )
+#    print( "[ DEBUG ]ssh:"+command )
     os.system('ssh -p 8080 femu@localhost "'+command+'"')
 
 ## load dataset ##
@@ -68,9 +68,9 @@ def exploing(full = False):
     for ps in psl:
         print("case : " + ps)
         print("start FEMU VM")
-#        os.system("cd /home/femu/femu/build-femu/")
-#        os.system("sudo /home/femu/femu/build-femu/run-whitebox.sh -b&")
-#        time.sleep(120)
+        os.system("cd /home/femu/femu/build-femu/")
+        os.system("sudo /home/femu/femu/build-femu/run-whitebox.sh -b&")
+        time.sleep(120)
 
         #terminal correcting
         os.system("stty sane")
@@ -97,7 +97,7 @@ def exploing(full = False):
 
         #shutdown 
         print("shutdown FEMU VM")
-#        ssh_exec("sudo shutdown now")
+        ssh_exec("sudo shutdown now")
 
         time.sleep(6)
     
