@@ -3,7 +3,7 @@
 import os
 import threading
 import time
-from part_list import part_list
+import part_list as pl
 
 #global settings
 DATA_DIR="/home/femu/data"
@@ -62,7 +62,7 @@ def copy_data_file(partitioning):
 #### MAIN ####
 def exploing(full = False):
     
-    psl = part_list(N, full)
+    psl = pl.part_list(N, full)
     for ps in psl:
 
         print("start FEMU VM")
@@ -77,7 +77,7 @@ def exploing(full = False):
         ssh_exec("echo FEMU VM connected")
 
         #mount
-        ssh_exec("sudo /mount.sh $ps")
+        ssh_exec("sudo /mount.sh "+ps)
 
         #prepare
         prepare_tast()
@@ -99,4 +99,5 @@ def exploing(full = False):
 
         time.sleep(60)
     
+exploing()
 print("Finish")
