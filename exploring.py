@@ -45,7 +45,7 @@ def run_task():
     
     threads=[]
     for r in run:
-        threads.append(Thread(target=ssh_exec, args=(r+"&")))
+        threads.append(Thread(target=ssh_exec, args=(r+"&",)))
         
     for th in threads:
         th.start()
