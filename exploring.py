@@ -58,8 +58,9 @@ def copy_data_file(partitioning):
     partitioning=partitioning.replace(" ", "_")
 
     for i in range(N):
-        os.system("touch "+DATA_DIR+"/wl_"+partitioning+str(i)+".txt")
-        ssh_exec("sudo cat /pblk-cast_perf/mydev"+str(i)+".data > "+DATA_DIR+"/wl_"+partitioning+str(i)+".txt")
+        data_file_name = DATA_DIR+"/wl_"+partitioning+str(i)+".txt"
+        os.system("touch " + data_file_name)
+        ssh_exec("sudo cat /pblk-cast_perf/mydev"+str(i)+".data > " + data_file_name)
 
 #### MAIN ####
 def exploing(full = False):
@@ -68,9 +69,8 @@ def exploing(full = False):
     for ps in psl:
         print("case : " + ps)
         print("start FEMU VM")
-        os.system("cd /home/femu/femu/build-femu/")
-        os.system("/home/femu/femu/build-femu/run-whitebox.sh -b&")
-        time.sleep(120)
+        os.system("cd /home/femu/femu/build-femu/ && /home/femu/femu/build-femu/run-whitebox.sh -b&")
+        time.sleep(60)
 
         #terminal correcting
         os.system("stty sane")
@@ -99,7 +99,7 @@ def exploing(full = False):
         print("shutdown FEMU VM")
         ssh_exec("sudo shutdown now")
 
-        time.sleep(6)
+        time.sleep(30)
     
 exploing()
 print("Finish")
