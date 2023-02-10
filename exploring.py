@@ -68,7 +68,7 @@ def exploing(full = False):
     
     psl = pl.part_list(N, full)
     for ps in psl:
-
+        print("case : " + ps)
         print("start FEMU VM")
 #        os.system("cd /home/femu/femu/build-femu/")
 #        os.system("sudo /home/femu/femu/build-femu/run-whitebox.sh -b&")
