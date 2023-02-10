@@ -12,9 +12,9 @@ N=3
 pre=[]
 run=[]
 
-pre.append("bash /script/test_ready.sh 0")
-pre.append("bash /script/test_ready.sh 1")
-pre.append("bash /script/test_ready.sh 2")
+pre.append("bash /script/test_pre.sh 0")
+pre.append("bash /script/test_pre.sh 1")
+pre.append("bash /script/test_pre.sh 2")
 
 pre.append("bash /script/test_run.sh 0 1 "+str(10))
 pre.append("bash /script/test_run.sh 0 2 "+str(10))
@@ -31,12 +31,10 @@ def prepare_tast():
     
     threads=[]
     for p in pre:
-        print( "[ DEBUG ]p:"+p )
         threads.append(Thread(target=ssh_exec, args=(p+"&",)))
         
     for th in threads:
         th.start()
-        time.sleep(0.1)
         
     for th in threads:
         th.join()
@@ -47,12 +45,10 @@ def run_task():
     
     threads=[]
     for r in run:
-        print( "[ DEBUG ]r:"+r )
-        threads.append(Thread(target=ssh_exec, args=(r+"&",)))
+        threads.append(Thread(target=ssh_exec, args=(r+"&")))
         
     for th in threads:
         th.start()
-        time.sleep(0.1)
         
     for th in threads:
         th.join()
