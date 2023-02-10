@@ -1,7 +1,7 @@
-#!/bin/phtyon3
+#!/usr/bin/phtyon3
 
 import os
-import threading
+from threading import Thread
 import time
 import part_list as pl
 
@@ -16,21 +16,20 @@ pre+=("bash /script/test_ready.sh 0")
 pre+=("bash /script/test_ready.sh 1")
 pre+=("bash /script/test_ready.sh 2")
 
-time=10
-pre+=("bash /script/test_run.sh 0 1 "+str(time))
-pre+=("bash /script/test_run.sh 0 2 "+str(time))
-pre+=("bash /script/test_run.sh 0 3 "+str(time))
+pre+=("bash /script/test_run.sh 0 1 "+str(10))
+pre+=("bash /script/test_run.sh 0 2 "+str(10))
+pre+=("bash /script/test_run.sh 0 3 "+str(10))
 
 ## send command to femu vm ##
-def ssh_exec():
-    os.system("ssh -p 8080 femu@localhost $1")
+def ssh_exec(command):
+    os.system("ssh -p 8080 femu@localhost "+command)
 
 ## load dataset ##
 def prepare_tast():
     threads=[]
     print("preparing")
     for p in pre:
-        th = threading(target=ssh_exec, args=(p+"&"))
+        th = Thread(target=ssh_exec, args=(p+"&"))
         th.start()
         threads.append(th)
         
@@ -43,7 +42,7 @@ def run_task():
     threads=[]
     print("run")
     for r in run:
-        th = threading(target=ssh_exec, args=(r+"&"))
+        th = Thread(target=ssh_exec, args=(r+"&"))
         th.start()
         threads.append(th)
 
@@ -66,9 +65,9 @@ def exploing(full = False):
     for ps in psl:
 
         print("start FEMU VM")
-        os.system("cd /home/femu/femu/build-femu/")
-        os.system("sudo /home/femu/femu/build-femu/run-whitebox.sh -b&")
-        time.sleep(120)
+#        os.system("cd /home/femu/femu/build-femu/")
+#        os.system("sudo /home/femu/femu/build-femu/run-whitebox.sh -b&")
+#        time.sleep(120)
 
         #terminal correcting
         os.system("stty sane")
@@ -97,7 +96,7 @@ def exploing(full = False):
         print("shutdown FEMU VM")
         ssh_exec("sudo shutdown now")
 
-        time.sleep(60)
+#        time.sleep(60)
     
 exploing()
 print("Finish")
