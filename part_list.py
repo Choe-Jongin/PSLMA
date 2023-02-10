@@ -26,14 +26,14 @@ def part_list(N,full = False):
     if full == False :
         psl = minimum_sols
 
-    ret = ""
+    ret = []
     for party in psl:
         mount_str = ""
         for p in party :
             mount_str += str(p//ch_size) + " "
-        
-        ret += mount_str +"\n"
-    print(ret)
+            
+        print(mount_str)
+        ret += mount_str
     return ret
 
 #entry point(first call)
