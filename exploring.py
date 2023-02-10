@@ -70,7 +70,7 @@ def exploing(full = False):
         print("case : " + ps)
         print("start FEMU VM")
         os.system("cd /home/femu/femu/build-femu/ && /home/femu/femu/build-femu/run-whitebox.sh -b&")
-        time.sleep(60)
+        time.sleep(120)
 
         #terminal correcting
         os.system("stty sane")
