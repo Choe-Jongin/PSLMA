@@ -60,7 +60,7 @@ def copy_data_file(partitioning):
     for i in range(N):
         data_file_name = DATA_DIR+"/wl_"+partitioning+str(i)+".txt"
         os.system("touch " + data_file_name)
-        os.system("ssh -p 8080 femu@localhost sudo cat /pblk-cast_perf/mydev"+str(i)+".data" > data_file_name)
+        os.system('ssh -p 8080 femu@localhost "sudo cat /pblk-cast_perf/mydev'+str(i)+'.data"' > data_file_name)
 
 #### MAIN ####
 def exploing(full = False):
