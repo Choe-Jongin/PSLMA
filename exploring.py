@@ -32,7 +32,7 @@ def prepare_tast():
     threads=[]
     for p in pre:
         print( "[ DEBUG ]p:"+p )
-        threads.append(Thread(target=ssh_exec, args=(p+"&")))
+        threads.append(Thread(target=ssh_exec, args=(p+"&",)))
         
     for th in threads:
         th.start()
@@ -47,7 +47,8 @@ def run_task():
     
     threads=[]
     for r in run:
-        threads.append(Thread(target=ssh_exec, args=(r+"&")))
+        print( "[ DEBUG ]r:"+r )
+        threads.append(Thread(target=ssh_exec, args=(r+"&",)))
         
     for th in threads:
         th.start()
