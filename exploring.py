@@ -16,9 +16,9 @@ pre.append("bash /script/test_pre.sh 0")
 pre.append("bash /script/test_pre.sh 1")
 pre.append("bash /script/test_pre.sh 2")
 
-pre.append("bash /script/test_run.sh 0 1 "+str(10))
-pre.append("bash /script/test_run.sh 0 2 "+str(10))
-pre.append("bash /script/test_run.sh 0 3 "+str(10))
+run.append("bash /script/test_run.sh 0 1 "+str(10))
+run.append("bash /script/test_run.sh 1 1 "+str(10))
+run.append("bash /script/test_run.sh 2 1 "+str(10))
 
 ## send command to femu vm ##
 def ssh_exec(command):
