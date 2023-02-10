@@ -22,32 +22,36 @@ pre+=("bash /script/test_run.sh 0 3 "+str(10))
 
 ## send command to femu vm ##
 def ssh_exec(command):
+    print( "ssh:"+command )
     os.system("ssh -p 8080 femu@localhost "+command)
 
 ## load dataset ##
 def prepare_tast():
-    threads=[]
     print("preparing")
+    
+    threads=[]
     for p in pre:
         threads.append(Thread(target=ssh_exec, args=(p+"&")))
-    #start
+        
     for th in threads:
         th.start()
-    #join
+        time.sleep(0.1)
+        
     for th in threads:
         th.join()
 
 ## run workload ##
 def run_task():
-    threads=[]
     print("run")
-    #init
+    
+    threads=[]
     for r in run:
         threads.append(Thread(target=ssh_exec, args=(r+"&")))
-    #start
+        
     for th in threads:
         th.start()
-    #join
+        time.sleep(0.1)
+        
     for th in threads:
         th.join()
 
@@ -95,9 +99,9 @@ def exploing(full = False):
 
         #shutdown 
         print("shutdown FEMU VM")
-        ssh_exec("sudo shutdown now")
+#        ssh_exec("sudo shutdown now")
 
-#        time.sleep(60)
+        time.sleep(6)
     
 exploing()
 print("Finish")
