@@ -22,7 +22,7 @@ pre.append("bash /script/test_run.sh 0 3 "+str(10))
 
 ## send command to femu vm ##
 def ssh_exec(command):
-    print( "ssh:"+command )
+    print( "[ DEBUG ]ssh:"+command )
     os.system("ssh -p 8080 femu@localhost "+command)
 
 ## load dataset ##
@@ -31,6 +31,7 @@ def prepare_tast():
     
     threads=[]
     for p in pre:
+        print( "[ DEBUG ]p:"+p )
         threads.append(Thread(target=ssh_exec, args=(p+"&")))
         
     for th in threads:
