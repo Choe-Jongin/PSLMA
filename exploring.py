@@ -1,6 +1,7 @@
 #!/usr/bin/phtyon3
 
 import os
+import sys
 from threading import Thread
 import time
 import part_list as pl
@@ -61,11 +62,11 @@ def copy_data_file(partitioning):
         data_file_name = DATA_DIR+"/wl_"+partitioning+str(i)+".txt"
         os.system("touch " + data_file_name)
         os.system('ssh -p 8080 femu@localhost "sudo cat /pblk-cast_perf/mydev'+str(i)+'.data" > ' + data_file_name)
+        time.sleep(0.1)
 
 #### MAIN ####
-def exploing(full = False):
+def exploing(psl):
     
-    psl = pl.part_list(N, full)
     for ps in psl:
         print("case : " + ps)
         print("start FEMU VM")
@@ -93,13 +94,32 @@ def exploing(full = False):
         ssh_exec("sudo docker rm \$(sudo docker ps -aq) -f")
 
         #unmount
-        ssh_exec("sudo /unmount.sh")
-
+        unmount_thr = Thread(target=ssh_exec, args=('sudo /unmount.sh',))
+        unmount_thr.start()
+        for _ in range(150) :
+            if unmount_thr.is_alive() :
+                time.sleep(1)
+            else :
+                break
+        
         #shutdown 
         print("shutdown FEMU VM")
         ssh_exec("sudo shutdown now")
 
         time.sleep(30)
-    
-exploing()
-print("Finish")
+
+#### entry point ####
+
+#entry point(first call)
+if __name__ == '__main__':
+    if len(sys.argv) <= 2 :
+        exploing(pl.part_list(N, False))
+    elif sys.argv[1] == "full" :
+        exploing(pl.part_list(N, True))
+    else:
+        p = ""
+        for i in sys.argv[1:]:
+            p+=i+" "
+        exploing([p])
+        
+    print("Finish")
