@@ -6,16 +6,16 @@ from psl import *
 ssd = 64
 ch = 16
 ch_size = ssd//ch
-step = ch_size
+step = 1
 
-def part_list(N,full = False):
-    avg=ssd/N
+def part_list(N, full = False):
+    avg=ch/N
     pivot=((avg+(step-0.001))//step*step)
     min=int((pivot/2+(step-0.001))//step*step)
-    max=int(ssd-min*(N-1))
+    max=int(ch-min*(N-1))
     
     #find all partition set
-    all_solutions   = get_full_partition_set_list(N, min, step, ssd)
+    all_solutions   = get_full_partition_set_list(N, min, step, ch)
     validity_dict   = count_each_part(N, all_solutions, min, max, step)
     
     #find minimum partition set
@@ -30,15 +30,21 @@ def part_list(N,full = False):
     for party in psl:
         mount_str = ""
         for p in party :
-            mount_str += str(p//ch_size) + " "
-            
-        print(mount_str)
+            mount_str += str(p) + " "
+        mount_str = mount_str[:-1]
+        print("[",mount_str,"]")
         ret.append(mount_str)
+    print("case :", len(ret))
     return ret
 
 #entry point(first call)
 if __name__ == '__main__':
-    if len(sys.argv) <= 2 :
+    if len(sys.argv) <= 1 :
+        N = 3
+        part_list(N, True)
+        print("----------------")
+        part_list(N, False)
+    elif len(sys.argv) <= 2 :
         part_list(int(sys.argv[1]))
     else:
         part_list(int(sys.argv[1]), sys.argv[2]=="full")

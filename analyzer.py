@@ -1,5 +1,6 @@
 import sys
 import os
+import copy
 import part_list as pl
 
 class Chunk(object):
@@ -21,6 +22,8 @@ class Chunk(object):
         self.r_device = r_device
         self.w_user = w_user
         self.w_gc = w_sum - w_user
+        
+        self.w_sum = w_sum
         
         if r_device + r_cached != read :
             self.valid = False
@@ -49,6 +52,7 @@ class Chunk(object):
             self.r_device   += other.r_device
             self.w_user     += other.w_user
             self.w_gc       += other.w_gc
+            self.w_sum       += other.w_sum
             
             self.calculate_detail()
     
@@ -61,6 +65,7 @@ class Chunk(object):
             self.r_device   //= num
             self.w_user     //= num
             self.w_gc       //= num
+            self.w_sum       //= num
             
     def print_chunk(self):
         if self.valid == False :
@@ -181,25 +186,36 @@ class Workload(object):
     def __init__(self, name):
         self.name = name
         self.data = {}
+        self.merged_data = {}
         
     def add_data(self, path, size):
         if not size in self.data :
             self.data[size] = []
+            self.merged_data[size] = object()
         
-        self.data[size].append(DataFile(path))
+        new_datafile = DataFile(path)
+        self.data[size].append(new_datafile)
+        return new_datafile
     
     #Replace with mean if there are multiple data in a size.
     def reduce(self):
         for size, datum in self.data.items():
+            self.merged_data[size] = copy.deepcopy(datum[0])
             if len(datum) == 1 :
                 continue
-            for merged in datum[1:]:
-                datum[0].merge(merged)
-            datum[0].divide(len(datum))
-            datum[0].calculate_total()
+            #sum then divide
+            for merge in datum[1:]:
+                self.merged_data[size].merge(merge)
+            self.merged_data[size].divide(len(datum))
+            self.merged_data[size].calculate_total()
     
     def get_data(self, size):
+        if size in self.merged_data.keys():
+            return self.merged_data[size]
         return self.data[size][0]
+
+    def get_original_data(self, size):
+        return self.data[size]
 
 class Analyzer(object):
     
@@ -208,18 +224,24 @@ class Analyzer(object):
     ch_size = ssd//ch
     step = ch_size
     
-    def __init__(self, dir, N, psl):
+    def __init__(self, dir, N, psl, names = []):
         self.N = N
         self.psl = psl
         self.full = pl.part_list(N, True)
         self.workloads = []
-        for i in range(N):
-            self.workloads.append(Workload(chr(65+i)))
+        self.all_datafiles = {}
         
-        print(self.full)
+        #if names is not set, set default name
+        for i in range(len(names),N):
+            names.append('NoName'+chr(65+i))
+        #set workload name
+        for i in range(N):
+            self.workloads.append(Workload(names[i]))
         
         #read file by workload
         for file in os.listdir(dir):
+            if file[0] == '.':
+                continue
             filename = dir+"/"+file
             print("read", filename)
             
@@ -229,10 +251,9 @@ class Analyzer(object):
             parse = parse.replace('.txt', '')
             parsed = parse.split('_')
             index = int(parsed[N])
-            
-            self.workloads[index].add_data(filename, int(parsed[index]))
+            self.all_datafiles[parse.replace('_', ' ')] =  self.workloads[index].add_data(filename, int(parsed[index]))
         
-        #sort by size
+        #sort by size. calculate total
         for workload in self.workloads:
             new_dict = {} 
             for k in sorted(workload.data):
@@ -240,46 +261,83 @@ class Analyzer(object):
             workload.data = new_dict
             workload.reduce()
             print(workload.data.keys())
+            
+        #### result ###
+        print("-"*80)
+        print("[ Average Bandwidth ]")
+        print("  workload", end = "")
+        for size in self.workloads[0].data.keys():
+            print("%10d"%(size), end = "")
+        print()
+        for workload in self.workloads:
+            print("%10s"%(workload.name), end = "")
+            for size in workload.data.keys():
+                data = round(workload.get_data(size).avg.throughput)
+                print('%10s' % format(data, ','), end = "")
+            print()     
+        print()
         
-        print("Result")
+        print("[ Average Flash Write ]")
+        print("  workload", end = "")
+        for size in self.workloads[0].data.keys():
+            print("%10d"%(size), end = "")
+        print()
+        for workload in self.workloads:
+            print("%10s"%(workload.name), end = "")
+            for size in workload.data.keys():
+                data = round(workload.get_data(size).avg.w_sum)
+                print('%10s' % format(data, ','), end = "")
+            print()     
+        print()
+            
+        print("Full Result ", "%10s %10s %10s %10s | %10s %10s %10s %10s"%
+            ("BW Total", names[0], names[1], names[2], "FW  Total", names[0], names[1], names[2]))
         for ps_str in self.full:
             target_value = 0
+            target_value2 = 0
             ps = ps_str.strip()
             ps = ps.split(' ')
-            
+
+            tasks=[]
             for i in range(N):
-                data = self.workloads[i].get_data(int(ps[i]))
-                target_value += data.avg.throughput
+                parse = ps_str+" "+str(i)
+                tasks.append(self.all_datafiles[parse])
+            for task in tasks:
+                target_value  += task.avg.throughput
+                target_value2 += task.avg.w_sum
+                
+            print("[", end = "")
             for p in ps:
-                print("%3d"%(int(p)*Analyzer.ch_size), end = "")
-            print(" : %10d"%(int(target_value)), 
-                  "%7d"%(self.workloads[0].get_data(int(ps[0])).avg.throughput),
-                  "%7d"%(self.workloads[1].get_data(int(ps[1])).avg.throughput),
-                  "%7d"%(self.workloads[2].get_data(int(ps[2])).avg.throughput)
+                print("%3d"%(int(p)), end = "")
+            print(" ] %10s"%format(int(target_value), ','), 
+                  "%10s"%format(tasks[0].avg.throughput, ','),
+                  "%10s"%format(tasks[1].avg.throughput, ','),
+                  "%10s"%format(tasks[2].avg.throughput, ','),
+                  "| %10s"%format(int(target_value2), ','), 
+                  "%10s"%format(tasks[0].avg.w_sum, ','),
+                  "%10s"%format(tasks[1].avg.w_sum, ','),
+                  "%10s"%format(tasks[2].avg.w_sum, ',')
                   )
             
-        print("bw  \ size", end = "")
-        for size in self.workloads[0].data.keys():
-            print("%8d"%(size*Analyzer.ch_size), end = "")
-        print()
-        for workload in self.workloads:
-            print("workload", workload.name, end = "")
-            for size in workload.data.keys():
-                data = workload.get_data(size).avg.throughput
-                print('%8s' % format(data, ','), end = "")
-            print()
-        print()
-        print("waf \ size", end = "")
-        for size in self.workloads[0].data.keys():
-            print("%8d"%(size*Analyzer.ch_size), end = "")
-        print()
-        for workload in self.workloads:
-            print("workload", workload.name, end = "")
-            for size in workload.data.keys():
-                data = round(workload.get_data(size).avg.waf*100)
-                print('%8s' % format(data, ','), end = "")
-            print()
-        
-            
 if __name__ == '__main__':
-    analyzer = Analyzer("data", 3, pl.part_list(3))
+    
+    workload_names = ['A', 'D', 'E']
+    dir = "data_145"
+    N = 3
+    psl = pl.part_list(N)
+    
+    if len(sys.argv) == 1 :
+        dir = "data_145"
+    elif len(sys.argv) == 2 :
+        dir = sys.argv[1]
+    elif len(sys.argv) >= 3 :
+        for i in range(1, len(sys.argv)):
+            if sys.argv[i] == "-p" :
+                dir = sys.argv[i+1]
+            if sys.argv[i] == "-n" :                
+                workload_names = []
+                for wl in sys.argv[i+1:]:
+                    workload_names.append(wl)
+                    
+    #make Analyzer
+    analyzer = Analyzer(dir, N, psl, workload_names)

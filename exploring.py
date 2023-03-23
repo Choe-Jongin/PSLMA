@@ -59,9 +59,12 @@ def copy_data_file(partitioning):
     partitioning=partitioning.replace(" ", "_")
 
     for i in range(N):
-        data_file_name = DATA_DIR+"/wl_"+partitioning+str(i)+".txt"
+        data_file_name = DATA_DIR+"/wl_"+partitioning+str(i)+".data"
+        latency_file_name = DATA_DIR+"/wl_"+partitioning+str(i)+".latency"
         os.system("touch " + data_file_name)
+        os.system("touch " + latency_file_name)
         os.system('ssh -p 8080 femu@localhost "sudo cat /pblk-cast_perf/mydev'+str(i)+'.data" > ' + data_file_name)
+        os.system('ssh -p 8080 femu@localhost "sudo cat /sys/block/mydev'+str(i)+'/pblk/latency" > ' + latency_file_name)
         time.sleep(0.1)
 
 #### MAIN ####
@@ -71,7 +74,7 @@ def exploing(psl):
         print("case : " + ps)
         print("start FEMU VM")
         os.system("cd /home/femu/femu/build-femu/ && /home/femu/femu/build-femu/run-whitebox.sh -b&")
-        time.sleep(120)
+        time.sleep(100)
 
         #terminal correcting
         os.system("stty sane")
@@ -84,6 +87,9 @@ def exploing(psl):
 
         #prepare
         prepare_tast()
+        
+        #active
+        ssh_exec('sudo echo 1 | sudo tee /sys/block/mydev0/pblk/cast_active');
 
         #run
         run_task()
@@ -91,12 +97,16 @@ def exploing(psl):
         #copy data
         copy_data_file(ps)
 
+        #docker close
         ssh_exec("sudo docker rm \$(sudo docker ps -aq) -f")
+        
+        #inactive
+        ssh_exec('sudo echo 0 | sudo tee /sys/block/mydev0/pblk/cast_active');
 
         #unmount
         unmount_thr = Thread(target=ssh_exec, args=('sudo /unmount.sh',))
         unmount_thr.start()
-        for _ in range(150) :
+        for _ in range(10) :
             if unmount_thr.is_alive() :
                 time.sleep(1)
             else :
