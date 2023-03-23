@@ -187,6 +187,7 @@ class Workload(object):
         self.name = name
         self.data = {}
         self.merged_data = {}
+        self.max_throughput = 0
         
     def add_data(self, path, size):
         if not size in self.data :
@@ -195,6 +196,8 @@ class Workload(object):
         
         new_datafile = DataFile(path)
         self.data[size].append(new_datafile)
+        if self.max_throughput < new_datafile.avg.throughput:
+            self.max_throughput = new_datafile.avg.throughput
         return new_datafile
     
     #Replace with mean if there are multiple data in a size.
@@ -312,10 +315,11 @@ class Analyzer(object):
                 parse = ps_str+" "+str(i)
                 if parse in self.all_datafiles.keys():
                     tasks[i] = self.all_datafiles[parse]
-            for task in tasks.values():
-                target_value1 += task.avg.throughput
-                target_value2 += task.avg.w_sum
-                target_value3 += 1
+            for i in range(len(tasks.items())):
+                target_value1 += tasks[i].avg.throughput
+                target_value2 += tasks[i].avg.w_sum
+                if self.workloads[i].max_throughput > 0 :
+                    target_value3 += tasks[i].avg.throughput/self.workloads[i].max_throughput
                 
             print("[", end = "")
             [print("%3d"%(int(p)), end = "") for p in ps_str.strip().split(' ')]
@@ -323,19 +327,21 @@ class Analyzer(object):
             
             print("%10s" % format(int(target_value1), ','), end = '')
             for i in range(N):
-                print("%10s" % format(tasks[i].avg.throughput if i in tasks.keys() else 0, ','), end = '')
+                print("%10s" % (format(tasks[i].avg.throughput, ',') if i in tasks.keys() else '-'), end = '')
         
             print(" |", end = '')
             print("%10s" % format(int(target_value2), ','), end = '')
             for i in range(N):
-                print("%10s" % format(tasks[i].avg.w_sum if i in tasks.keys() else 0, ','), end = '')
+                print("%10s" % (format(tasks[i].avg.w_sum, ',') if i in tasks.keys() else '-'), end = '')
             
             print(" |", end = '')
-            print("%10s" % format(int(target_value3), ','), end = '')
+            print("%10s" % format(round(target_value3,2), ','), end = '')
             for i in range(N):
                 data = 0
-                print("%10s" % format(data if i in tasks.keys() else 0, ','), end = '')
-                
+                if i in tasks.keys():
+                    if self.workloads[i].max_throughput > 0 :
+                        data = round(tasks[i].avg.throughput/self.workloads[i].max_throughput,2)
+                print("%10s" % (format(data, ',') if i in tasks.keys() else '-'), end = '')
             print()
             
 if __name__ == '__main__':
