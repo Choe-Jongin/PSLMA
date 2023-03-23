@@ -234,6 +234,7 @@ class Analyzer(object):
         #if names is not set, set default name
         for i in range(len(names),N):
             names.append('NoName'+chr(65+i))
+            
         #set workload name
         for i in range(N):
             self.workloads.append(Workload(names[i]))
@@ -251,7 +252,8 @@ class Analyzer(object):
             parse = parse.replace('.txt', '')
             parsed = parse.split('_')
             index = int(parsed[N])
-            self.all_datafiles[parse.replace('_', ' ')] =  self.workloads[index].add_data(filename, int(parsed[index]))
+            new_datafile = self.workloads[index].add_data(filename, int(parsed[index]))
+            self.all_datafiles[parse.replace('_', ' ')] = new_datafile
         
         #sort by size. calculate total
         for workload in self.workloads:
@@ -262,8 +264,9 @@ class Analyzer(object):
             workload.reduce()
             print(workload.data.keys())
             
-        #### result ###
+        #### show result ###
         print("-"*80)
+        
         print("[ Average Bandwidth ]")
         print("  workload", end = "")
         for size in self.workloads[0].data.keys():
@@ -289,45 +292,61 @@ class Analyzer(object):
                 print('%10s' % format(data, ','), end = "")
             print()     
         print()
-            
-        print("Full Result ", "%10s %10s %10s %10s | %10s %10s %10s %10s"%
-            ("BW Total", names[0], names[1], names[2], "FW  Total", names[0], names[1], names[2]))
+        
+        print("Full Result", end ='')
+        print("    BW Total", end ='')
+        [print("%10s"%(name), end = "") for name in names]
+        print(" | FW  Total", end ='')
+        [print("%10s"%(name), end = "") for name in names]
+        print(" |  Weighted", end ='')
+        [print("%10s"%(name), end = "") for name in names]
+        print()
+        
         for ps_str in self.full:
-            target_value = 0
+            target_value1 = 0
             target_value2 = 0
-            ps = ps_str.strip()
-            ps = ps.split(' ')
+            target_value3 = 0
 
-            tasks=[]
+            tasks={}
             for i in range(N):
                 parse = ps_str+" "+str(i)
-                tasks.append(self.all_datafiles[parse])
-            for task in tasks:
-                target_value  += task.avg.throughput
+                if parse in self.all_datafiles.keys():
+                    tasks[i] = self.all_datafiles[parse]
+            for task in tasks.values():
+                target_value1 += task.avg.throughput
                 target_value2 += task.avg.w_sum
+                target_value3 += 1
                 
             print("[", end = "")
-            for p in ps:
-                print("%3d"%(int(p)), end = "")
-            print(" ] %10s"%format(int(target_value), ','), 
-                  "%10s"%format(tasks[0].avg.throughput, ','),
-                  "%10s"%format(tasks[1].avg.throughput, ','),
-                  "%10s"%format(tasks[2].avg.throughput, ','),
-                  "| %10s"%format(int(target_value2), ','), 
-                  "%10s"%format(tasks[0].avg.w_sum, ','),
-                  "%10s"%format(tasks[1].avg.w_sum, ','),
-                  "%10s"%format(tasks[2].avg.w_sum, ',')
-                  )
+            [print("%3d"%(int(p)), end = "") for p in ps_str.strip().split(' ')]
+            print(" ] ", end = '')
+            
+            print("%10s" % format(int(target_value1), ','), end = '')
+            for i in range(N):
+                print("%10s" % format(tasks[i].avg.throughput if i in tasks.keys() else 0, ','), end = '')
+        
+            print(" |", end = '')
+            print("%10s" % format(int(target_value2), ','), end = '')
+            for i in range(N):
+                print("%10s" % format(tasks[i].avg.w_sum if i in tasks.keys() else 0, ','), end = '')
+            
+            print(" |", end = '')
+            print("%10s" % format(int(target_value3), ','), end = '')
+            for i in range(N):
+                data = 0
+                print("%10s" % format(data if i in tasks.keys() else 0, ','), end = '')
+                
+            print()
             
 if __name__ == '__main__':
     
-    workload_names = ['A', 'D', 'E']
-    dir = "data_145"
+    workload_names = ['P1', 'P2', 'P3']
+    dir = "data"
     N = 3
     psl = pl.part_list(N)
     
     if len(sys.argv) == 1 :
-        dir = "data_145"
+        dir = "data"
     elif len(sys.argv) == 2 :
         dir = sys.argv[1]
     elif len(sys.argv) >= 3 :
