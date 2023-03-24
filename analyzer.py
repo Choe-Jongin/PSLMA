@@ -86,6 +86,7 @@ class DataFile(object):
     def __init__(self, path = ""):
         self.chunks = []            # all data each seconds
         self.avg = Chunk()          # average of chunks
+        self.tot = Chunk()          # total value of chunks
         
         #peak values
         self.peak_throughput        = 0
@@ -110,6 +111,8 @@ class DataFile(object):
             
         if self.e_time > len(self.chunks) :
             self.e_time = len(self.chunks)
+            
+        self.calculate_total()
             
     def read_data_file(self, path):
         if path == "" :
@@ -176,6 +179,7 @@ class DataFile(object):
             
             #sum each chuck
             self.avg.add_other(chunk)
+            self.tot.add_other(chunk)
             
         #calculate the average.
         self.avg.divide(num)
@@ -196,8 +200,6 @@ class Workload(object):
         
         new_datafile = DataFile(path)
         self.data[size].append(new_datafile)
-        if self.max_throughput < new_datafile.avg.throughput:
-            self.max_throughput = new_datafile.avg.throughput
         return new_datafile
     
     #Replace with mean if there are multiple data in a size.
@@ -219,7 +221,14 @@ class Workload(object):
 
     def get_original_data(self, size):
         return self.data[size]
-
+    
+    def get_max(self):
+        self.max_throughput = -1
+        for size, datum in self.data.items():
+            for node in datum:
+                if self.max_throughput < node.avg.throughput:
+                    self.max_throughput = node.avg.throughput
+        return self.max_throughput
 class Analyzer(object):
     
     ssd = 64
@@ -227,7 +236,7 @@ class Analyzer(object):
     ch_size = ssd//ch
     step = ch_size
     
-    def __init__(self, dir, N, psl, names = []):
+    def __init__(self, dir, N, psl, names = [], s_time = -1, end_time = -1):
         self.N = N
         self.psl = psl
         self.full = pl.part_list(N, True)
@@ -256,6 +265,7 @@ class Analyzer(object):
             parsed = parse.split('_')
             index = int(parsed[N])
             new_datafile = self.workloads[index].add_data(filename, int(parsed[index]))
+            new_datafile.set_period(s_time,end_time)
             self.all_datafiles[parse.replace('_', ' ')] = new_datafile
         
         #sort by size. calculate total
@@ -291,17 +301,17 @@ class Analyzer(object):
         for workload in self.workloads:
             print("%10s"%(workload.name), end = "")
             for size in workload.data.keys():
-                data = round(workload.get_data(size).avg.w_sum)
-                print('%10s' % format(data, ','), end = "")
+                data = round(workload.get_data(size).avg.w_sum*86400//1000//1000/1000, 1)
+                print('%6s TBW' % format(data, ','), end = "")
             print()     
         print()
         
-        print("Full Result", end ='')
+        print(" PARTITION ", end ='')
         print("    BW Total", end ='')
         [print("%10s"%(name), end = "") for name in names]
-        print(" | FW  Total", end ='')
-        [print("%10s"%(name), end = "") for name in names]
         print(" |  Weighted", end ='')
+        [print("%10s"%(name), end = "") for name in names]
+        print(" | FlashWrite/day", end ='')
         [print("%10s"%(name), end = "") for name in names]
         print()
         
@@ -317,31 +327,32 @@ class Analyzer(object):
                     tasks[i] = self.all_datafiles[parse]
             for i in range(len(tasks.items())):
                 target_value1 += tasks[i].avg.throughput
-                target_value2 += tasks[i].avg.w_sum
-                if self.workloads[i].max_throughput > 0 :
-                    target_value3 += tasks[i].avg.throughput/self.workloads[i].max_throughput
+                target_value2 += tasks[i].avg.throughput/self.workloads[i].get_max()
+                target_value3 += tasks[i].avg.w_sum
                 
             print("[", end = "")
             [print("%3d"%(int(p)), end = "") for p in ps_str.strip().split(' ')]
             print(" ] ", end = '')
             
-            print("%10s" % format(int(target_value1), ','), end = '')
+            print("%10s" % format(int(target_value1), ',') if target_value1 != 0 else "%10s"%'-', end = '')
             for i in range(N):
                 print("%10s" % (format(tasks[i].avg.throughput, ',') if i in tasks.keys() else '-'), end = '')
         
             print(" |", end = '')
-            print("%10s" % format(int(target_value2), ','), end = '')
-            for i in range(N):
-                print("%10s" % (format(tasks[i].avg.w_sum, ',') if i in tasks.keys() else '-'), end = '')
-            
-            print(" |", end = '')
-            print("%10s" % format(round(target_value3,2), ','), end = '')
+            print("%10.2f" % (target_value2) if target_value2 != 0 else "%10s"%'-' , end = '')
             for i in range(N):
                 data = 0
                 if i in tasks.keys():
                     if self.workloads[i].max_throughput > 0 :
-                        data = round(tasks[i].avg.throughput/self.workloads[i].max_throughput,2)
+                        data = round(tasks[i].avg.throughput/self.workloads[i].get_max(), 2)
                 print("%10s" % (format(data, ',') if i in tasks.keys() else '-'), end = '')
+                
+            print(" |", end = '')
+            target_value3 = round(target_value3*86400//1000//1000/1000,1)
+            print("%11s TBW" % format(target_value3, ',') if target_value3 != 0 else "%15s"%'-', end = '')
+            for i in range(N):
+                print("%6s TBW" % (format(round(tasks[i].avg.w_sum*86400//1000//1000/1000, 1), ',')) if i in tasks.keys() else "%10s"%'-', end = '')
+            
             print()
             
 if __name__ == '__main__':
@@ -350,6 +361,8 @@ if __name__ == '__main__':
     dir = "data"
     N = 3
     psl = pl.part_list(N)
+    s_time = -1
+    e_time = -1
     
     if len(sys.argv) == 1 :
         dir = "data"
@@ -362,7 +375,14 @@ if __name__ == '__main__':
             if sys.argv[i] == "-n" :                
                 workload_names = []
                 for wl in sys.argv[i+1:]:
+                    if wl[0] == '-':
+                        break
                     workload_names.append(wl)
+            if sys.argv[i] == "-s" :      
+                s_time = int(sys.argv[i+1])
+            if sys.argv[i] == "-e" :      
+                e_time = int(sys.argv[i+1])
+                
                     
     #make Analyzer
-    analyzer = Analyzer(dir, N, psl, workload_names)
+    analyzer = Analyzer(dir, N, psl, workload_names, s_time, e_time)
