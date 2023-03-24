@@ -313,10 +313,10 @@ class Analyzer(object):
         [print("%10s"%(name), end = "") for name in names]
         print(" | Write/day", end ='')
         [print("%10s"%(name), end = "") for name in names]
-        print(" |    read", end ='')
-        [print("%8s"%(name), end = "") for name in names]
-        print(" |   write", end ='')
-        [print("%8s"%(name), end = "") for name in names]
+        print(" |      read", end ='')
+        [print("%10s"%(name), end = "") for name in names]
+        print(" |     write", end ='')
+        [print("%10s"%(name), end = "") for name in names]
         print()
         
         for ps_str in self.full:
@@ -362,14 +362,14 @@ class Analyzer(object):
                 print("%6s TBW" % (format(round(tasks[i].avg.w_sum*86400//1000//1000/1000, 1), ',')) if i in tasks.keys() else "%10s"%'-', end = '')
             
             print(" |", end = '')    
-            print("%8s" % format(int(target_value4), ',') if target_value1 != 0 else "%8s"%'-', end = '')
+            print("%10s" % format(int(target_value4), ',') if target_value1 != 0 else "%10s"%'-', end = '')
             for i in range(N):
-                print("%8s" % (format(tasks[i].avg.read, ',') if i in tasks.keys() else '-'), end = '')
+                print("%10s" % (format(tasks[i].avg.read, ',') if i in tasks.keys() else '-'), end = '')
                 
             print(" |", end = '')
-            print("%8s" % format(int(target_value5), ',') if target_value1 != 0 else "%8s"%'-', end = '')
+            print("%10s" % format(int(target_value5), ',') if target_value1 != 0 else "%10s"%'-', end = '')
             for i in range(N):
-                print("%8s" % (format(tasks[i].avg.write, ',') if i in tasks.keys() else '-'), end = '')
+                print("%10s" % (format(tasks[i].avg.write, ',') if i in tasks.keys() else '-'), end = '')
             
             print()
             
