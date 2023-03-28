@@ -333,7 +333,7 @@ class Analyzer(object):
                     tasks[i] = self.all_datafiles[parse]
             for i in range(len(tasks.items())):
                 target_value1 += tasks[i].avg.throughput
-                target_value2 += tasks[i].avg.throughput/self.workloads[i].get_max()
+                target_value2 += (tasks[i].avg.throughput/self.workloads[i].get_max())**2
                 target_value3 += tasks[i].avg.w_sum
                 target_value4 += tasks[i].avg.read
                 target_value5 += tasks[i].avg.write
@@ -352,14 +352,14 @@ class Analyzer(object):
                 data = 0
                 if i in tasks.keys():
                     if self.workloads[i].max_throughput > 0 :
-                        data = round(tasks[i].avg.throughput/self.workloads[i].get_max(), 2)
+                        data = round((tasks[i].avg.throughput/self.workloads[i].get_max())**2, 2)
                 print("%10s" % (format(data, ',') if i in tasks.keys() else '-'), end = '')
                 
             print(" |", end = '')
             target_value3 = round(target_value3*86400//1000//1000/1000,1)
-            print("%6s TBW" % format(target_value3, ',') if target_value3 != 0 else "%10s"%'-', end = '')
+            print("%7s TB" % format(target_value3, ',') if target_value3 != 0 else "%10s"%'-', end = '')
             for i in range(N):
-                print("%6s TBW" % (format(round(tasks[i].avg.w_sum*86400//1000//1000/1000, 1), ',')) if i in tasks.keys() else "%10s"%'-', end = '')
+                print("%7s TB" % (format(round(tasks[i].avg.w_sum*86400//1000//1000/1000, 1), ',')) if i in tasks.keys() else "%10s"%'-', end = '')
             
             print(" |", end = '')    
             print("%10s" % format(int(target_value4), ',') if target_value1 != 0 else "%10s"%'-', end = '')

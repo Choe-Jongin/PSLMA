@@ -1,5 +1,3 @@
-#!/usr/bin/phtyon3
-
 import os
 import sys
 from threading import Thread
@@ -8,18 +6,52 @@ import part_list as pl
 
 #global settings
 DATA_DIR="/home/femu/data"
-N=3
 
 pre=[]
 run=[]
 
-pre.append("bash /script/test_pre.sh 0")
-pre.append("bash /script/test_pre.sh 1")
-pre.append("bash /script/test_pre.sh 2")
+SCRIPT_DIR="/script"
+workloads={}
+workloads['A'] = "fio"
+workloads['B'] = "filebench-varmail"
+workloads['C'] = "filebench-webproxy"
+workloads['D'] = "filebench-fileserver"
+workloads['E'] = "ycsb-a"
+workloads['F'] = "ycsb-d"
+workloads['G'] = "ycsb-f"
+workloads['H'] = "vdbench-read"
+workloads['I'] = "vdbench-write"
+workloads['J'] = "vdbench-web"
+workloads['K'] = "sysbench"
 
-run.append("bash /script/test_run.sh 0 1 "+str(20))
-run.append("bash /script/test_run.sh 1 1 "+str(20))
-run.append("bash /script/test_run.sh 2 1 "+str(20))
+target_workload=[]
+target_datasize = "4G"
+target_time = "600"
+
+
+def get_workloads_str():
+    str = ""
+    for ch in target_workload:
+        str += ch
+    return str
+
+def set_data_set(size, time):
+    global  target_datasize, target_time
+    target_datasize = size
+    target_time = str(time)
+    print("set")
+    print(target_datasize, target_time)
+        
+def set_workload():
+    if len(target_workload) == 0:
+        print("target workload is empty")
+        return 
+    
+    print(target_datasize, target_time)
+    for i in range(len(target_workload)):
+        id = target_workload[i]
+        pre.append("bash "+ SCRIPT_DIR+"/"+workloads[id]+"_pre.sh "+target_datasize+ " " +target_time+ " " +str(i))
+        run.append("bash "+ SCRIPT_DIR+"/"+workloads[id]+"_run.sh "+target_datasize+ " " +target_time+ " " +str(i))
 
 ## send command to femu vm ##
 def ssh_exec(command):
@@ -27,7 +59,7 @@ def ssh_exec(command):
     os.system('ssh -p 8080 femu@localhost "'+command+'"')
 
 ## load dataset ##
-def prepare_tast():
+def prepare_task():
     print("preparing")
     
     threads=[]
@@ -56,20 +88,32 @@ def run_task():
 
 ## get data file ##
 def copy_data_file(partitioning):
+    partitioning=partitioning.rstrip()
     partitioning=partitioning.replace(" ", "_")
-
-    for i in range(N):
-        data_file_name = DATA_DIR+"/wl_"+partitioning+str(i)+".data"
-        latency_file_name = DATA_DIR+"/wl_"+partitioning+str(i)+".latency"
+    cpu_data_file_name = DATA_DIR+"/"+get_workloads_str()+"_cpu_"+partitioning+".cpudata"
+    os.system("touch " + cpu_data_file_name)
+    os.system('ssh -p 8080 femu@localhost "sudo cat /pblk-cast_perf/cpu.data" > ' + cpu_data_file_name)
+    print("copy", cpu_data_file_name) 
+    for i in range(len(target_workload)):
+        data_file_name = DATA_DIR+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".data"
+        latency_file_name = DATA_DIR+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".latency"
         os.system("touch " + data_file_name)
         os.system("touch " + latency_file_name)
         os.system('ssh -p 8080 femu@localhost "sudo cat /pblk-cast_perf/mydev'+str(i)+'.data" > ' + data_file_name)
         os.system('ssh -p 8080 femu@localhost "sudo cat /sys/block/mydev'+str(i)+'/pblk/latency" > ' + latency_file_name)
+        print("copy", data_file_name, latency_file_name)
         time.sleep(0.1)
 
 #### MAIN ####
 def exploing(psl):
     
+    for i in range(len(target_workload)):
+        print("dev" + str(i) + " : " + workloads[target_workload[i]])
+    
+    set_workload()
+    
+    print(pre)
+    print(run)
     for ps in psl:
         print("case : " + ps)
         print("start FEMU VM")
@@ -86,7 +130,7 @@ def exploing(psl):
         ssh_exec("sudo /mount.sh "+ps)
 
         #prepare
-        prepare_tast()
+        prepare_task()
         
         #active
         ssh_exec('sudo echo 1 | sudo tee /sys/block/mydev0/pblk/cast_active');
@@ -119,17 +163,49 @@ def exploing(psl):
         time.sleep(30)
 
 #### entry point ####
-
+def main():
+    full=True
+    p = ""
+    size = "4G"
+    time = 1800
+        
+    if len(sys.argv) <= 1 :
+        print("No workload specified")
+        return
+    
+    #search arguments
+    for i in range(1, len(sys.argv)):
+        arg = sys.argv[i]
+        if arg == "full" :              #full exploring
+            full = True
+        elif arg in workloads.keys():   # Set Workload
+            target_workload.append(arg)
+        elif arg == "-case":            # Set custom case
+            for part in range(i+1, len(sys.argv)):
+                p+=sys.argv[part]+" "
+            p.rstrip()
+            break
+        elif arg == "-size":
+            i += 1
+            size = sys.argv[i]
+        elif arg == "-time":
+            i += 1
+            time = sys.argv[i]
+        else:                           # invalid argument
+            print(arg,"is not defined")
+            break
+    
+    set_data_set(size, time)
+    
+    #custom case
+    if p != "":
+        print("test only [", p, "]" )
+        exploing([p])
+    else:
+        exploing(pl.part_list(len(target_workload), full))
+            
+    print("Finish")   
+    
 #entry point(first call)
 if __name__ == '__main__':
-    if len(sys.argv) <= 2 :
-        exploing(pl.part_list(N, False))
-    elif sys.argv[1] == "full" :
-        exploing(pl.part_list(N, True))
-    else:
-        p = ""
-        for i in sys.argv[1:]:
-            p+=i+" "
-        exploing([p])
-        
-    print("Finish")
+    main()

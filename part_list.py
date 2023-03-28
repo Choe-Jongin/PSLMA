@@ -6,9 +6,8 @@ from psl import *
 ssd = 64
 ch = 16
 ch_size = ssd//ch
-step = 1
 
-def part_list(N, full = False):
+def part_list(N, step = 1, full = False):
     avg=ch/N
     pivot=((avg+(step-0.001))//step*step)
     min=int((pivot/2+(step-0.001))//step*step)
@@ -40,11 +39,18 @@ def part_list(N, full = False):
 #entry point(first call)
 if __name__ == '__main__':
     if len(sys.argv) <= 1 :
-        N = 3
-        part_list(N, True)
+        # teest run(no arguments)
+        n = 5
+        part_list(N=n, step=1, full=True)
         print("----------------")
-        part_list(N, False)
+        part_list(N=n, step=2, full=True)
+        print("----------------")
+        part_list(N=n, step=1, full=False)
+        print("----------------")
+        part_list(N=n, step=2, full=False)
     elif len(sys.argv) <= 2 :
-        part_list(int(sys.argv[1]))
+        part_list(N=int(sys.argv[1]), step=1)
+    elif len(sys.argv) <= 3 :
+        part_list(N=int(sys.argv[1]), step=int(sys.argv[2]))
     else:
-        part_list(int(sys.argv[1]), sys.argv[2]=="full")
+        part_list(N=int(sys.argv[1]), step=int(sys.argv[2]), full=sys.argv[3]=="full")
