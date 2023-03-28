@@ -164,10 +164,11 @@ def exploing(psl):
 
 #### entry point ####
 def main():
-    full=True
+    full=False
     p = ""
     size = "4G"
     time = 1800
+    step = 1
         
     if len(sys.argv) <= 1 :
         print("No workload specified")
@@ -176,6 +177,9 @@ def main():
     #search arguments
     for i in range(1, len(sys.argv)):
         arg = sys.argv[i]
+        if arg == "" :
+            continue
+        
         if arg == "full" :              #full exploring
             full = True
         elif arg in workloads.keys():   # Set Workload
@@ -186,11 +190,17 @@ def main():
             p.rstrip()
             break
         elif arg == "-size":
-            i += 1
+            i = i+1
             size = sys.argv[i]
+            sys.argv[i]=""
         elif arg == "-time":
-            i += 1
+            i = i+1
             time = sys.argv[i]
+            sys.argv[i]=""
+        elif arg == "-step":
+            i = i+1
+            step = int(sys.argv[i])
+            sys.argv[i]=""
         else:                           # invalid argument
             print(arg,"is not defined")
             break
@@ -202,7 +212,7 @@ def main():
         print("test only [", p, "]" )
         exploing([p])
     else:
-        exploing(pl.part_list(len(target_workload), full))
+        exploing(pl.part_list(len(target_workload), step, full))
             
     print("Finish")   
     
