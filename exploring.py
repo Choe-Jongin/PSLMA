@@ -118,7 +118,7 @@ def exploing(psl):
         print("case : " + ps)
         print("start FEMU VM")
         os.system("cd /home/femu/femu/build-femu/ && /home/femu/femu/build-femu/run-whitebox.sh -b&")
-        time.sleep(100)
+        time.sleep(120)
 
         #terminal correcting
         os.system("stty sane")
@@ -146,15 +146,16 @@ def exploing(psl):
         
         #inactive
         ssh_exec('sudo echo 0 | sudo tee /sys/block/mydev0/pblk/cast_active');
-
+        
         #unmount
-        unmount_thr = Thread(target=ssh_exec, args=('sudo /unmount.sh',))
-        unmount_thr.start()
-        for _ in range(10) :
-            if unmount_thr.is_alive() :
-                time.sleep(1)
-            else :
-                break
+        #time.sleep(10)
+        # unmount_thr = Thread(target=ssh_exec, args=('sudo /unmount.sh',))
+        # unmount_thr.start()
+        # for _ in range(10) :
+        #     if unmount_thr.is_alive() :
+        #         time.sleep(1)
+        #     else :
+        #         break
         
         #shutdown 
         print("shutdown FEMU VM")
@@ -180,15 +181,10 @@ def main():
         if arg == "" :
             continue
         
-        if arg == "full" :              #full exploring
-            full = True
-        elif arg in workloads.keys():   # Set Workload
+        if arg in workloads.keys():   # Set Workload
             target_workload.append(arg)
-        elif arg == "-case":            # Set custom case
-            for part in range(i+1, len(sys.argv)):
-                p+=sys.argv[part]+" "
-            p.rstrip()
-            break
+        elif arg == "full" :            # full exploring
+            full = True
         elif arg == "-size":
             i = i+1
             size = sys.argv[i]
@@ -201,6 +197,10 @@ def main():
             i = i+1
             step = int(sys.argv[i])
             sys.argv[i]=""
+        elif arg == "-case":            # Set custom case
+            for part in range(i+1, i+len(target_workload)+1):
+                p+=sys.argv[part]+" "
+            p.rstrip()
         else:                           # invalid argument
             print(arg,"is not defined")
             break
@@ -209,6 +209,10 @@ def main():
     
     #custom case
     if p != "":
+        if len(p) != len(target_workload):
+            print("N does not match")
+            print("target worklods :", len(target_workload), "partition set :", len(p))
+            return
         print("test only [", p, "]" )
         exploing([p])
     else:

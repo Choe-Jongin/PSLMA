@@ -396,6 +396,7 @@ if __name__ == '__main__':
                     if wl[0] == '-':
                         break
                     workload_names.append(wl)
+                N = len(workload_names)
             if sys.argv[i] == "-s" :      
                 s_time = int(sys.argv[i+1])
             if sys.argv[i] == "-e" :      
