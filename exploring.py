@@ -5,7 +5,7 @@ import time
 import part_list as pl
 
 #global settings
-DATA_DIR="/home/femu/data"
+DATA_DIR="~/data"
 
 pre=[]
 run=[]
@@ -117,7 +117,7 @@ def exploing(psl):
     for ps in psl:
         print("case : " + ps)
         print("start FEMU VM")
-        os.system("cd /home/femu/femu/build-femu/ && /home/femu/femu/build-femu/run-whitebox.sh -b&")
+        os.system("cd ~/femu/build-femu/ && ~/femu/build-femu/run-whitebox.sh -b&")
         time.sleep(120)
 
         #terminal correcting
