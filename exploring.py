@@ -10,7 +10,7 @@ DATA_DIR="~/data"
 pre=[]
 run=[]
 
-SCRIPT_DIR="/script"
+SCRIPT_DIR="/scripts"
 workloads={}
 workloads['A'] = "fio"
 workloads['B'] = "filebench-varmail"
