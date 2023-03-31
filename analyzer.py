@@ -236,15 +236,14 @@ class Analyzer(object):
     ch_size = ssd//ch
     step = ch_size
     
-    def __init__(self, dir, N, psl, names = [], s_time = -1, end_time = -1):
-        self.N = N
-        self.psl = psl
-        self.full = pl.part_list(N, True)
+    def __init__(self, dir, names = [], s_time = -1, end_time = -1, step = 1):
+        N = len(names)
+        self.full = pl.part_list(N, step, True)
         self.workloads = []
         self.all_datafiles = {}
         
         #if names is not set, set default name
-        for i in range(len(names),N):
+        for i in range(len(names), N):
             names.append('NoName'+chr(65+i))
             
         #set workload name
@@ -255,11 +254,13 @@ class Analyzer(object):
         for file in os.listdir(dir):
             if file[0] == '.':
                 continue
+            if file[-5:] != '.data':
+                continue
             filename = dir+"/"+file
             print("read", filename)
             
             parse = file
-            parse = parse.replace('wl_', '')
+            parse = parse[(parse.find('_')+1):]
             parse = parse.replace('.data', '')
             parse = parse.replace('.txt', '')
             parsed = parse.split('_')
@@ -280,7 +281,7 @@ class Analyzer(object):
         #### show result ###
         print("-"*80)
         
-        print("[ Average Bandwidth ]")
+        print("[ Average Throughput/s ]")
         print("  workload", end = "")
         for size in self.workloads[0].data.keys():
             print("%10d"%(size), end = "")
@@ -293,7 +294,7 @@ class Analyzer(object):
             print()     
         print()
         
-        print("[ Average Flash Write ]")
+        print("[ Average Flash Write/day ]")
         print("  workload", end = "")
         for size in self.workloads[0].data.keys():
             print("%10d"%(size), end = "")
@@ -302,17 +303,43 @@ class Analyzer(object):
             print("%10s"%(workload.name), end = "")
             for size in workload.data.keys():
                 data = round(workload.get_data(size).avg.w_sum*86400//1000//1000/1000, 1)
-                print('%6s TBW' % format(data, ','), end = "")
+                print('%7s TB' % format(data, ','), end = "")
             print()     
         print()
         
-        print(" PARTITION ", end ='')
-        print("    BW Total", end ='')
+        print("[ Average WAF ]")
+        print("  workload", end = "")
+        for size in self.workloads[0].data.keys():
+            print("%10d"%(size), end = "")
+        print()
+        for workload in self.workloads:
+            print("%10s"%(workload.name), end = "")
+            for size in workload.data.keys():
+                data = round(workload.get_data(size).avg.waf*100)
+                print('%10s' % format(data, ','), end = "")
+            print()     
+        print()
+        
+        print("[ Average write/s ]")
+        print("  workload", end = "")
+        for size in self.workloads[0].data.keys():
+            print("%10d"%(size), end = "")
+        print()
+        for workload in self.workloads:
+            print("%10s"%(workload.name), end = "")
+            for size in workload.data.keys():
+                data = round(workload.get_data(size).avg.write)
+                print('%10s' % format(data, ','), end = "")
+            print()     
+        print()
+        
+        print(" PARTITION"," "*(11-len(self.full[0])), end ='')
+        print("   through/s", end ='')
         [print("%10s"%(name), end = "") for name in names]
-        print(" |  Weighted", end ='')
-        [print("%10s"%(name), end = "") for name in names]
-        print(" | Write/day", end ='')
-        [print("%10s"%(name), end = "") for name in names]
+        print(" | Weighted", end ='')
+        [print("%8s"%(name), end = "") for name in names]
+        print(" | GBW/day", end ='')
+        [print("%8s"%(name), end = "") for name in names]
         print(" |      read", end ='')
         [print("%10s"%(name), end = "") for name in names]
         print(" |     write", end ='')
@@ -334,7 +361,7 @@ class Analyzer(object):
             for i in range(len(tasks.items())):
                 target_value1 += tasks[i].avg.throughput
                 target_value2 += (tasks[i].avg.throughput/self.workloads[i].get_max())**2
-                target_value3 += tasks[i].avg.w_sum
+                target_value3 += tasks[i].tot.w_sum
                 target_value4 += tasks[i].avg.read
                 target_value5 += tasks[i].avg.write
                 
@@ -347,19 +374,19 @@ class Analyzer(object):
                 print("%10s" % (format(tasks[i].avg.throughput, ',') if i in tasks.keys() else '-'), end = '')
         
             print(" |", end = '')
-            print("%10.2f" % (target_value2) if target_value2 != 0 else "%10s"%'-' , end = '')
+            print("%9.2f" % (target_value2) if target_value2 != 0 else "%9s"%'-' , end = '')
             for i in range(N):
                 data = 0
                 if i in tasks.keys():
                     if self.workloads[i].max_throughput > 0 :
                         data = round((tasks[i].avg.throughput/self.workloads[i].get_max())**2, 2)
-                print("%10s" % (format(data, ',') if i in tasks.keys() else '-'), end = '')
+                print("%8s" % (format(data, ',') if i in tasks.keys() else '-'), end = '')
                 
             print(" |", end = '')
-            target_value3 = round(target_value3*86400//1000//1000/1000,1)
-            print("%7s TB" % format(target_value3, ',') if target_value3 != 0 else "%10s"%'-', end = '')
+            target_value3 = round(target_value3//1000/1000,1)
+            print("%8s" % format(target_value3, ',') if target_value3 != 0 else "%8s"%'-', end = '')
             for i in range(N):
-                print("%7s TB" % (format(round(tasks[i].avg.w_sum*86400//1000//1000/1000, 1), ',')) if i in tasks.keys() else "%10s"%'-', end = '')
+                print("%8s" % (format(round(tasks[i].tot.w_sum//1000/1000, 1), ',')) if i in tasks.keys() else "%8s"%'-', end = '')
             
             print(" |", end = '')    
             print("%10s" % format(int(target_value4), ',') if target_value1 != 0 else "%10s"%'-', end = '')
@@ -377,10 +404,9 @@ if __name__ == '__main__':
     
     workload_names = ['P1', 'P2', 'P3']
     dir = "data"
-    N = 3
-    psl = pl.part_list(N)
     s_time = -1
     e_time = -1
+    step = 1
     
     if len(sys.argv) == 1 :
         dir = "data"
@@ -396,12 +422,13 @@ if __name__ == '__main__':
                     if wl[0] == '-':
                         break
                     workload_names.append(wl)
-                N = len(workload_names)
             if sys.argv[i] == "-s" :      
                 s_time = int(sys.argv[i+1])
             if sys.argv[i] == "-e" :      
                 e_time = int(sys.argv[i+1])
+            if sys.argv[i] == "-step" :      
+                step = int(sys.argv[i+1])
                 
                     
     #make Analyzer
-    analyzer = Analyzer(dir, N, psl, workload_names, s_time, e_time)
+    analyzer = Analyzer(dir, workload_names, s_time, e_time, step)
