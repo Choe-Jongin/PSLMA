@@ -360,7 +360,7 @@ class Analyzer(object):
                     tasks[i] = self.all_datafiles[parse]
             for i in range(len(tasks.items())):
                 target_value1 += tasks[i].avg.throughput
-                target_value2 += (tasks[i].avg.throughput/self.workloads[i].get_max())**2
+                target_value2 += (tasks[i].avg.throughput/self.workloads[i].get_max())
                 target_value3 += tasks[i].tot.w_sum
                 target_value4 += tasks[i].avg.read
                 target_value5 += tasks[i].avg.write
@@ -379,7 +379,7 @@ class Analyzer(object):
                 data = 0
                 if i in tasks.keys():
                     if self.workloads[i].max_throughput > 0 :
-                        data = round((tasks[i].avg.throughput/self.workloads[i].get_max())**2, 2)
+                        data = round((tasks[i].avg.throughput/self.workloads[i].get_max()), 2)
                 print("%8s" % (format(data, ',') if i in tasks.keys() else '-'), end = '')
                 
             print(" |", end = '')
