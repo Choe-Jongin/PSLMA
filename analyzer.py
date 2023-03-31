@@ -333,8 +333,8 @@ class Analyzer(object):
             print()     
         print()
         
-        print(" PARTITION"," "*(11-len(self.full[0])), end ='')
-        print("   through/s", end ='')
+        print(" "*(N*3+5), end ='')
+        print("through/s", end ='')
         [print("%10s"%(name), end = "") for name in names]
         print(" | Weighted", end ='')
         [print("%8s"%(name), end = "") for name in names]
