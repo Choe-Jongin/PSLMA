@@ -126,6 +126,9 @@ def exploing(psl):
         #ssh test
         ssh_exec("echo FEMU VM connected")
 
+        #docker close
+        ssh_exec("sudo docker rm \$(sudo docker ps -aq) -f")
+        
         #mount
         ssh_exec("sudo /mount.sh "+ps)
 
