@@ -338,7 +338,7 @@ class Analyzer(object):
         [print("%10s"%(name), end = "") for name in names]
         print(" | Weighted", end ='')
         [print("%8s"%(name), end = "") for name in names]
-        print(" | GBW/day", end ='')
+        print(" | totalGBW", end ='')
         [print("%8s"%(name), end = "") for name in names]
         print(" |      read", end ='')
         [print("%10s"%(name), end = "") for name in names]
