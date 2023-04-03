@@ -203,7 +203,7 @@ def main():
         elif arg == "-case":            # Set custom case
             for part in range(i+1, i+len(target_workload)+1):
                 p+=sys.argv[part]+" "
-            p.rstrip()
+            p=p.rstrip()
         else:                           # invalid argument
             print(arg,"is not defined")
             break
@@ -212,7 +212,7 @@ def main():
     
     #custom case
     if p != "":
-        if len(p) != len(target_workload):
+        if len(p.split(" ")) != len(target_workload):
             print("N does not match")
             print("target worklods :", len(target_workload), "partition set :", len(p))
             return

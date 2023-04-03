@@ -294,16 +294,16 @@ class Analyzer(object):
             print()     
         print()
         
-        print("[ Average Flash Write/day ]")
+        print("[ total Flash Write ]")
         print("  workload", end = "")
         for size in self.workloads[0].data.keys():
-            print("%10d"%(size), end = "")
+            print("%11d"%(size), end = "")
         print()
         for workload in self.workloads:
             print("%10s"%(workload.name), end = "")
             for size in workload.data.keys():
-                data = round(workload.get_data(size).avg.w_sum*86400//1000//1000/1000, 1)
-                print('%7s TB' % format(data, ','), end = "")
+                data = round(workload.get_data(size).tot.w_sum//1000/1000, 1)
+                print('%8s GB' % format(data, ','), end = "")
             print()     
         print()
         
