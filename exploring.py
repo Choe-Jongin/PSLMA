@@ -50,8 +50,8 @@ def set_workload():
     print(target_datasize, target_time)
     for i in range(len(target_workload)):
         id = target_workload[i]
-        pre.append("bash "+ SCRIPT_DIR+"/"+workloads[id]+"_pre.sh "+target_datasize+ " " +target_time+ " " +str(i))
-        run.append("bash "+ SCRIPT_DIR+"/"+workloads[id]+"_run.sh "+target_datasize+ " " +target_time+ " " +str(i))
+        pre.append("sudo bash "+ SCRIPT_DIR+"/"+workloads[id]+"_pre.sh "+target_datasize+ " " +target_time+ " " +str(i))
+        run.append("sudo bash "+ SCRIPT_DIR+"/"+workloads[id]+"_run.sh "+target_datasize+ " " +target_time+ " " +str(i))
 
 ## send command to femu vm ##
 def ssh_exec(command):
