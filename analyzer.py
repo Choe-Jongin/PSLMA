@@ -94,25 +94,30 @@ class DataFile(object):
         self.peak_throughput_time   = 0
         self.peak_throughput_write  = 0
 
-        self.read_data_file(path)
+        if path != "" :
+            self.read_data_file(path)
         
         #period        
         self.s_time = 0
         self.e_time = 0
         self.set_period(0, len(self.chunks))
-        
-        self.calculate_total()
     
     def set_period(self, s = -1, e = -1):
         if s >= 0:
             self.s_time = s
         if e >= 0 :
             self.e_time = e
-            
+                    
+        if self.e_time - self.s_time == 0 :
+            return "invalid period"
+        
         if self.e_time > len(self.chunks) :
             self.e_time = len(self.chunks)
-            
+            return "out of length"
+
         self.calculate_total()
+        
+        return "ok"
             
     def read_data_file(self, path):
         if path == "" :
@@ -168,6 +173,9 @@ class DataFile(object):
         end     = self.e_time
         num = len(self.chunks[start:end])
         
+        if len(self.chunks) == 0 or num == 0 :
+            return "no chunks"
+        
         for chunk in self.chunks[start:end]:
             
             #check peak value
@@ -192,22 +200,26 @@ class Workload(object):
         self.data = {}
         self.merged_data = {}
         self.max_throughput = 0
+        self.even_data = object()
         
-    def add_data(self, path, size):
-        if not size in self.data :
-            self.data[size] = []
-            self.merged_data[size] = object()
-        
+    def add_data(self, path, size, is_even=False):
         new_datafile = DataFile(path)
-        self.data[size].append(new_datafile)
+        if len(new_datafile.chunks) == 0:
+            print("empty data file")
+            return None
+        
+        if is_even:
+            self.even_data = new_datafile
         return new_datafile
     
     #Replace with mean if there are multiple data in a size.
     def reduce(self):
         for size, datum in self.data.items():
-            self.merged_data[size] = copy.deepcopy(datum[0])
-            if len(datum) == 1 :
+            print(size, len(datum))
+            if len(datum) == 0 :
                 continue
+            self.merged_data[size] = copy.deepcopy(datum[0])
+            
             #sum then divide
             for merge in datum[1:]:
                 self.merged_data[size].merge(merge)
@@ -217,6 +229,8 @@ class Workload(object):
     def get_data(self, size):
         if size in self.merged_data.keys():
             return self.merged_data[size]
+        if not size in self.data.keys() :
+            return DataFile("")
         return self.data[size][0]
 
     def get_original_data(self, size):
@@ -265,9 +279,27 @@ class Analyzer(object):
             parse = parse.replace('.txt', '')
             parsed = parse.split('_')
             index = int(parsed[N])
-            new_datafile = self.workloads[index].add_data(filename, int(parsed[index]))
-            new_datafile.set_period(s_time,end_time)
-            self.all_datafiles[parse.replace('_', ' ')] = new_datafile
+            
+            #함수로 분리 필요
+            is_even = False
+            if N == 2 and parsed[:2] == ["8", "8"]:
+                is_even = True
+            elif N == 3 and parsed[:3] == ["5", "5", "6"]:
+                is_even = True
+            elif N == 4 and parsed[:4] == ["4", "4", "4", "4"]:
+                is_even = True
+            elif N == 5 and parsed[:5] == ["3", "3", "3", "3", "4"]:
+                is_even = True
+            elif N == 6 and parsed[:6] == ["2", "2", "3", "3", "3", "3"]:
+                is_even = True
+                
+            new_datafile = self.workloads[index].add_data(filename, int(parsed[index]), is_even)            
+            if new_datafile != None and new_datafile.set_period(s_time,end_time) == "ok":
+                if not int(parsed[index]) in self.workloads[index].data :
+                    self.workloads[index].data[int(parsed[index])] = []
+                    self.workloads[index].merged_data[int(parsed[index])] = object()
+                self.workloads[index].data[int(parsed[index])].append(new_datafile)
+                self.all_datafiles[parse.replace('_', ' ')] = new_datafile
         
         #sort by size. calculate total
         for workload in self.workloads:
@@ -294,7 +326,7 @@ class Analyzer(object):
             print()     
         print()
         
-        print("[ total Flash Write ]")
+        print("[ Flash Write per day ]")
         print("  workload", end = "")
         for size in self.workloads[0].data.keys():
             print("%11d"%(size), end = "")
@@ -302,7 +334,7 @@ class Analyzer(object):
         for workload in self.workloads:
             print("%10s"%(workload.name), end = "")
             for size in workload.data.keys():
-                data = round(workload.get_data(size).tot.w_sum//1000/1000, 1)
+                data = round(workload.get_data(size).avg.w_sum*86400/1000/1000/1000, 1)
                 print('%8s GB' % format(data, ','), end = "")
             print()     
         print()
@@ -334,12 +366,12 @@ class Analyzer(object):
         print()
         
         print(" "*(N*3+5), end ='')
-        print("through/s", end ='')
-        [print("%10s"%(name), end = "") for name in names]
+        print("MByte/s", end ='')
+        [print("%8s"%(name), end = "") for name in names]
         print(" | Weighted", end ='')
         [print("%8s"%(name), end = "") for name in names]
-        print(" | totalGBW", end ='')
-        [print("%8s"%(name), end = "") for name in names]
+        print(" | TBW/day", end ='')
+        [print("%5s"%(name), end = "") for name in names]
         print(" |      read", end ='')
         [print("%10s"%(name), end = "") for name in names]
         print(" |     write", end ='')
@@ -359,9 +391,9 @@ class Analyzer(object):
                 if parse in self.all_datafiles.keys():
                     tasks[i] = self.all_datafiles[parse]
             for i in range(len(tasks.items())):
-                target_value1 += tasks[i].avg.throughput
-                target_value2 += (tasks[i].avg.throughput/self.workloads[i].get_max())
-                target_value3 += tasks[i].tot.w_sum
+                target_value1 += tasks[i].avg.throughput//1000
+                target_value2 += (tasks[i].avg.throughput/self.workloads[i].even_data.avg.throughput)
+                target_value3 += tasks[i].avg.w_sum
                 target_value4 += tasks[i].avg.read
                 target_value5 += tasks[i].avg.write
                 
@@ -369,34 +401,38 @@ class Analyzer(object):
             [print("%3d"%(int(p)), end = "") for p in ps_str.strip().split(' ')]
             print(" ] ", end = '')
             
-            print("%10s" % format(int(target_value1), ',') if target_value1 != 0 else "%10s"%'-', end = '')
+            #Throughput
+            print("%8s" % format(int(target_value1), ',') if target_value1 != 0 else "%8s"%'-', end = '')
             for i in range(N):
-                print("%10s" % (format(tasks[i].avg.throughput, ',') if i in tasks.keys() else '-'), end = '')
-        
+                print("%8s" % (format(tasks[i].avg.throughput//1000, ',') if i in tasks.keys() else '-'), end = '')
+
+            #Weighted
             print(" |", end = '')
             print("%9.2f" % (target_value2) if target_value2 != 0 else "%9s"%'-' , end = '')
             for i in range(N):
                 data = 0
                 if i in tasks.keys():
-                    if self.workloads[i].max_throughput > 0 :
-                        data = round((tasks[i].avg.throughput/self.workloads[i].get_max()), 2)
+                    if self.workloads[i].even_data.avg.throughput > 0 :
+                        data = round((tasks[i].avg.throughput/self.workloads[i].even_data.avg.throughput), 2)
                 print("%8s" % (format(data, ',') if i in tasks.keys() else '-'), end = '')
-                
+            
+            #TBW
             print(" |", end = '')
-            target_value3 = round(target_value3//1000/1000,1)
+            target_value3 = round(target_value3*86400/1000/1000/1000,1)
             print("%8s" % format(target_value3, ',') if target_value3 != 0 else "%8s"%'-', end = '')
             for i in range(N):
-                print("%8s" % (format(round(tasks[i].tot.w_sum//1000/1000, 1), ',')) if i in tasks.keys() else "%8s"%'-', end = '')
+                print("%5s" % (format(round(tasks[i].avg.w_sum*86400/1000/1000/1000,1), ',')) if i in tasks.keys() else "%5s"%'-', end = '')
             
+            #Read
             print(" |", end = '')    
-            print("%10s" % format(int(target_value4), ',') if target_value1 != 0 else "%10s"%'-', end = '')
+            print("%10s" % format(int(target_value4//1000), ',') if target_value1 != 0 else "%10s"%'-', end = '')
             for i in range(N):
-                print("%10s" % (format(tasks[i].avg.read, ',') if i in tasks.keys() else '-'), end = '')
-                
+                print("%10s" % (format(tasks[i].avg.read//1000, ',') if i in tasks.keys() else '-'), end = '')
+            #Write
             print(" |", end = '')
-            print("%10s" % format(int(target_value5), ',') if target_value1 != 0 else "%10s"%'-', end = '')
+            print("%10s" % format(int(target_value5//1000), ',') if target_value1 != 0 else "%10s"%'-', end = '')
             for i in range(N):
-                print("%10s" % (format(tasks[i].avg.write, ',') if i in tasks.keys() else '-'), end = '')
+                print("%10s" % (format(tasks[i].avg.write//1000, ',') if i in tasks.keys() else '-'), end = '')
             
             print()
             
@@ -416,7 +452,7 @@ if __name__ == '__main__':
         for i in range(1, len(sys.argv)):
             if sys.argv[i] == "-p" :
                 dir = sys.argv[i+1]
-            if sys.argv[i] == "-n" :                
+            if sys.argv[i] == "-n" or sys.argv[i] == "-name" :                
                 workload_names = []
                 for wl in sys.argv[i+1:]:
                     if wl[0] == '-':
