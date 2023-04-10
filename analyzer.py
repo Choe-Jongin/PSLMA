@@ -438,7 +438,7 @@ class Analyzer(object):
             
 if __name__ == '__main__':
     
-    workload_names = ['P1', 'P2', 'P3']
+    workload_names = ['P1', 'P2']
     dir = "data"
     s_time = -1
     e_time = -1

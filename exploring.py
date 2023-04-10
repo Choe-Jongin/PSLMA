@@ -61,7 +61,7 @@ def ssh_exec(command):
 
 ## load dataset ##
 def prepare_task():
-    print("preparing")
+    print("[preparing]")
     
     threads=[]
     for p in pre:
@@ -83,7 +83,9 @@ def prepare_task():
 
 ## run workload ##
 def run_task():
-    print("run")
+    print("****************************************************************")
+    print("[run]")
+    time.sleep(1)
     
     threads=[]
     for r in run:
