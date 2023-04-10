@@ -74,6 +74,7 @@ def prepare_task():
     for th in threads:
         while True:
             if time.time() - start_time > target_time + 200:
+                print("[TIME OUT]")
                 break
             if th.is_alive() :
                 continue
@@ -81,6 +82,8 @@ def prepare_task():
     # for th in threads:
     #     th.join()
 
+    print("[end load]")
+    
 ## run workload ##
 def run_task():
     print("****************************************************************")
@@ -98,6 +101,7 @@ def run_task():
     for th in threads:
         while True:
             if time.time() - start_time > target_time + 200:
+                print("[TIME OUT]")
                 break
             if th.is_alive() :
                 continue
