@@ -72,7 +72,7 @@ def prepare_task():
         
     start_time = time.time()    # for timeout
     for th in threads:
-        if time.time - start_time > target_time + 200:
+        if time.time() - start_time > target_time + 200:
             break
         if th.is_alive() :
             continue
@@ -92,7 +92,7 @@ def run_task():
         
     start_time = time.time()    # for timeout
     for th in threads:
-        if time.time - start_time > target_time + 200:
+        if time.time() - start_time > target_time + 200:
             break
         if th.is_alive() :
             continue
@@ -213,7 +213,7 @@ def main():
         
         if arg in workloads.keys():   # Set Workload
             target_workload.append(arg)
-        elif arg == "full" :            # full exploring
+        elif arg == "full" or arg == "-full":            # full exploring
             full = True
         elif arg == "-size":
             i = i+1
