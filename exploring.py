@@ -72,10 +72,12 @@ def prepare_task():
         
     start_time = time.time()    # for timeout
     for th in threads:
-        if time.time() - start_time > target_time + 200:
-            break
-        if th.is_alive() :
-            continue
+        while True:
+            if time.time() - start_time > target_time + 200:
+                break
+            if th.is_alive() :
+                continue
+            time.sleep(1)
     # for th in threads:
     #     th.join()
 
@@ -92,10 +94,12 @@ def run_task():
         
     start_time = time.time()    # for timeout
     for th in threads:
-        if time.time() - start_time > target_time + 200:
-            break
-        if th.is_alive() :
-            continue
+        while True:
+            if time.time() - start_time > target_time + 200:
+                break
+            if th.is_alive() :
+                continue
+            time.sleep(1)
 
 ## get data file ##
 def copy_data_file(partitioning):
