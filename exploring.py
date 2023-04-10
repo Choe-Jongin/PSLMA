@@ -65,7 +65,7 @@ def prepare_task():
     
     threads=[]
     for p in pre:
-        threads.append(Thread(target=ssh_exec, args=(p,)))
+        threads.append(Thread(target=ssh_exec, args=(p + "&",)))
         
     for th in threads:
         th.start()
@@ -92,7 +92,7 @@ def run_task():
     
     threads=[]
     for r in run:
-        threads.append(Thread(target=ssh_exec, args=(r,)))
+        threads.append(Thread(target=ssh_exec, args=(r + "&",)))
         
     for th in threads:
         th.start()
