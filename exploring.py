@@ -73,7 +73,7 @@ def prepare_task():
     start_time = time.time()    # for timeout
     for th in threads:
         while True:
-            if time.time() - start_time > target_time + 200:
+            if time.time() - start_time > int(target_time) + 200:
                 print("[TIME OUT]")
                 break
             if th.is_alive() :
@@ -81,8 +81,6 @@ def prepare_task():
             time.sleep(1)
     # for th in threads:
     #     th.join()
-
-    print("[end load]")
     
 ## run workload ##
 def run_task():
@@ -92,7 +90,7 @@ def run_task():
     
     threads=[]
     for r in run:
-        threads.append(Thread(target=ssh_exec, args=(r + "&",)))
+        threads.append(Thread(target=ssh_exec, args=(r + " &",)))
         
     for th in threads:
         th.start()
@@ -100,7 +98,7 @@ def run_task():
     start_time = time.time()    # for timeout
     for th in threads:
         while True:
-            if time.time() - start_time > target_time + 200:
+            if time.time() - start_time > int(target_time) + 200:
                 print("[TIME OUT]")
                 break
             if th.is_alive() :
