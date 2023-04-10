@@ -57,6 +57,7 @@ def set_workload():
 def ssh_exec(command):
 #    print( "[ DEBUG ]ssh:"+command )
     os.system('ssh -p 8080 femu@localhost "'+command+'"')
+    time.sleep(0.1)
 
 ## load dataset ##
 def prepare_task():
@@ -64,13 +65,19 @@ def prepare_task():
     
     threads=[]
     for p in pre:
-        threads.append(Thread(target=ssh_exec, args=(p+"&",)))
+        threads.append(Thread(target=ssh_exec, args=(p,)))
         
     for th in threads:
         th.start()
         
+    start_time = time.time()    # for timeout
     for th in threads:
-        th.join()
+        if time.time - start_time > target_time + 200:
+            break
+        if th.is_alive() :
+            continue
+    # for th in threads:
+    #     th.join()
 
 ## run workload ##
 def run_task():
@@ -78,13 +85,17 @@ def run_task():
     
     threads=[]
     for r in run:
-        threads.append(Thread(target=ssh_exec, args=(r+"&",)))
+        threads.append(Thread(target=ssh_exec, args=(r,)))
         
     for th in threads:
         th.start()
         
+    start_time = time.time()    # for timeout
     for th in threads:
-        th.join()
+        if time.time - start_time > target_time + 200:
+            break
+        if th.is_alive() :
+            continue
 
 ## get data file ##
 def copy_data_file(partitioning):
@@ -93,6 +104,15 @@ def copy_data_file(partitioning):
     cpu_data_file_name = DATA_DIR+"/"+get_workloads_str()+"_cpu_"+partitioning+".cpudata"
     os.system("touch " + cpu_data_file_name)
     os.system('ssh -p 8080 femu@localhost "sudo cat /pblk-cast_perf/cpu.data" > ' + cpu_data_file_name)
+    
+    cpu_data_file = open(cpu_data_file_name, 'r')
+    # Fail to copy or test
+    if cpu_data_file.read().count("\n") <= target_time*0.8 :
+        os.system("rm " + cpu_data_file_name)
+        cpu_data_file.close()
+        return "retry"
+    
+    # Success
     print("copy", cpu_data_file_name) 
     for i in range(len(target_workload)):
         data_file_name = DATA_DIR+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".data"
@@ -103,6 +123,8 @@ def copy_data_file(partitioning):
         os.system('ssh -p 8080 femu@localhost "sudo cat /sys/block/mydev'+str(i)+'/pblk/latency" > ' + latency_file_name)
         print("copy", data_file_name, latency_file_name)
         time.sleep(0.1)
+        
+    return "complete"
 
 #### MAIN ####
 def exploing(psl):
@@ -114,57 +136,62 @@ def exploing(psl):
     
     print(pre)
     print(run)
+    
     for ps in psl:
-        print("case : " + ps)
-        print("start FEMU VM")
-        os.system("cd ~/femu/build-femu/ && ~/femu/build-femu/run-whitebox.sh -b&")
-        time.sleep(120)
+        test = True
+        while test:
+            test = False
+            print("case : " + ps)
+            print("start FEMU VM")
+            os.system("cd ~/femu/build-femu/ && ~/femu/build-femu/run-whitebox.sh -b&")
+            time.sleep(120)
 
-        #terminal correcting
-        os.system("stty sane")
+            #terminal correcting
+            os.system("stty sane")
 
-        #ssh test
-        ssh_exec("echo FEMU VM connected")
+            #ssh test
+            ssh_exec("echo FEMU VM connected")
 
-        #docker close
-        ssh_exec("sudo docker rm \$(sudo docker ps -aq) -f")
-        
-        #mount
-        ssh_exec("sudo /mount.sh "+ps)
+            #docker close first
+            ssh_exec("sudo docker rm \$(sudo docker ps -aq) -f")
+            
+            #mount
+            ssh_exec("sudo /mount.sh "+ps)
 
-        #prepare
-        prepare_task()
-        
-        #active
-        ssh_exec('sudo echo 1 | sudo tee /sys/block/mydev0/pblk/cast_active');
+            #prepare
+            prepare_task()
+            
+            #active
+            ssh_exec('sudo echo 1 | sudo tee /sys/block/mydev0/pblk/cast_active');
 
-        #run
-        run_task()
+            #run
+            run_task()
 
-        #copy data
-        copy_data_file(ps)
+            #docker close
+            ssh_exec("sudo docker rm \$(sudo docker ps -aq) -f")
+            
+            #inactive
+            ssh_exec('sudo echo 0 | sudo tee /sys/block/mydev0/pblk/cast_active');
+            
+            #copy data
+            if copy_data_file(ps) == "retry":
+                test = True
+            
+            #unmount
+            #time.sleep(10)
+            # unmount_thr = Thread(target=ssh_exec, args=('sudo /unmount.sh',))
+            # unmount_thr.start()
+            # for _ in range(10) :
+            #     if unmount_thr.is_alive() :
+            #         time.sleep(1)
+            #     else :
+            #         break
+            
+            #shutdown 
+            print("shutdown FEMU VM")
+            ssh_exec("sudo shutdown now")
 
-        #docker close
-        ssh_exec("sudo docker rm \$(sudo docker ps -aq) -f")
-        
-        #inactive
-        ssh_exec('sudo echo 0 | sudo tee /sys/block/mydev0/pblk/cast_active');
-        
-        #unmount
-        #time.sleep(10)
-        # unmount_thr = Thread(target=ssh_exec, args=('sudo /unmount.sh',))
-        # unmount_thr.start()
-        # for _ in range(10) :
-        #     if unmount_thr.is_alive() :
-        #         time.sleep(1)
-        #     else :
-        #         break
-        
-        #shutdown 
-        print("shutdown FEMU VM")
-        ssh_exec("sudo shutdown now")
-
-        time.sleep(30)
+            time.sleep(30)
 
 #### entry point ####
 def main():
