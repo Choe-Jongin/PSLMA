@@ -438,7 +438,7 @@ class Analyzer(object):
             
 if __name__ == '__main__':
     
-    workload_names = ['P1', 'P2']
+    workload_names = []
     dir = "data"
     s_time = -1
     e_time = -1
@@ -452,6 +452,10 @@ if __name__ == '__main__':
         for i in range(1, len(sys.argv)):
             if sys.argv[i] == "-p" :
                 dir = sys.argv[i+1]
+            if sys.argv[i] == "-N" :
+                N = int(sys.argv[i+1])
+                for i in range(1, N+1):
+                    workload_names.append("P"+ascii(i))
             if sys.argv[i] == "-n" or sys.argv[i] == "-name" :                
                 workload_names = []
                 for wl in sys.argv[i+1:]:

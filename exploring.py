@@ -71,7 +71,9 @@ def prepare_task():
         th.start()
 
     for th in threads:
-        th.join(int(target_time)+200)
+        th.join(int(target_time)+100)
+        if th.is_alive():
+            print("TIME OUT")
     
 ## run workload ##
 def run_task():
@@ -87,7 +89,9 @@ def run_task():
         th.start()
         
     for th in threads:
-        th.join(int(target_time)+200)
+        th.join(int(target_time)+100)
+        if th.is_alive():
+            print("TIME OUT")
 
 ## get data file ##
 def copy_data_file(partitioning):
