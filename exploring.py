@@ -91,6 +91,10 @@ def run_task():
 
 ## get data file ##
 def copy_data_file(partitioning):
+    global DATA_DIR
+    if DATA_DIR[0] == '~':
+        DATA_DIR = os.path.expanduser('~')+DATA_DIR[1:]
+
     partitioning=partitioning.rstrip()
     partitioning=partitioning.replace(" ", "_")
     cpu_data_file_name = DATA_DIR+"/"+get_workloads_str()+"_cpu_"+partitioning+".cpudata"
@@ -99,7 +103,7 @@ def copy_data_file(partitioning):
     
     cpu_data_file = open(cpu_data_file_name, 'r')
     # Fail to copy or test
-    if cpu_data_file.read().count("\n") <= target_time*0.8 :
+    if cpu_data_file.read().count("\n") <= int(target_time)*0.8 :
         os.system("rm " + cpu_data_file_name)
         cpu_data_file.close()
         return "retry"
