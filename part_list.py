@@ -10,8 +10,6 @@ def part_list(N, step = 1, full = False, ch = 16):
     if min % step != 0 :
         min = min + step - min%step
     max=int(ch-min*(N-1))
-    if max > min*5 :
-        max = min*5
     
     print("[N"+str(N)+"]", " ch:" + str(ch) + "(" + str(ch*4) + "GB)", ", min:", min,", max:",max, ", step:", step , sep="")
     
