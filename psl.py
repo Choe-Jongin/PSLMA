@@ -2,18 +2,29 @@
 from utils import * 
 
 # 모든 조합을 찾는 함수
-def get_full_partition_set_list(n, min, step, remain):
-    def get_next(n, min, step, remain, part):
+def get_full_partition_set_list(n, min, max, step, remain):
+    
+    def get_next(n, min, max, step, remain, part):
         if n <= 1 :
+            if remain > max :
+                return None
+            if remain < min :
+                return None
+            if (remain-min)%step != 0:
+                return None
             return [part + [remain]]
         else :
             parts = []
-            for i in range( min, (remain-min)+1, step):
-                parts.extend(get_next(n-1, min, step, remain - i, part + [i]))
+            stop = max if max < remain-min else remain-min
+            for i in range( min, stop+1, step):
+                next = get_next(n-1, min, max, step, remain - i, part + [i])
+                if next != None:
+                    parts.extend(next)
             return parts
         
-    return get_next(n, min, step, remain, [])
+    return get_next(n, min, max, step, remain, [])
 
+#greedy
 def get_minimum_partition_set_list(N, min, max, step, all):
     
     def make_part_dict(sols):

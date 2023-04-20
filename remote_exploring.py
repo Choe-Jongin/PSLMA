@@ -6,9 +6,8 @@ import part_list as pl
 
 #global settings
 DATA_DIR="~/data"
-
-pre=[]
-run=[]
+FEMU_ID_IP="-p 8080 femu@166.104.246.86"
+REMOTE_ID_IP="jongin@166.104.246.86"
 
 SCRIPT_DIR="/scripts"
 workloads={}
@@ -24,10 +23,12 @@ workloads['I'] = "vdbench-write"
 workloads['J'] = "vdbench-web"
 workloads['K'] = "sysbench"
 
+pre=[]
+run=[]
+
 target_workload=[]
 target_datasize = "4G"
 target_time = "600"
-
 
 def get_workloads_str():
     str = ""
@@ -55,8 +56,16 @@ def set_workload():
 
 ## send command to femu vm ##
 def ssh_exec(command):
+    # print( "[ DEBUG ]ssh:"+command )
+    ssh_command = 'ssh ' + FEMU_ID_IP + ' "'+command+'"'
+    print( "[ DEBUG ]"+ssh_command)
+    os.system(ssh_command)
+    time.sleep(0.1)
+
+## send command to host server ##
+def ssh_exec_to_host(command):
 #    print( "[ DEBUG ]ssh:"+command )
-    os.system('ssh -p 8080 femu@localhost "'+command+'"')
+    os.system('ssh ' + REMOTE_ID_IP + ' "'+command+'"')
     time.sleep(0.1)
 
 ## load dataset ##
@@ -72,7 +81,7 @@ def prepare_task():
 
     start_time = time.time()
     for th in threads:
-        th.join(int(target_time) - (time.time() - start_time) + 200)
+        th.join(int(target_time) - (time.time() - start_time) + 100)
         if th.is_alive():
             print("TIME OUT")
     
@@ -84,14 +93,14 @@ def run_task():
     
     threads=[]
     for r in run:
-        threads.append(Thread(target=ssh_exec, args=(r + " &",)))
+        threads.append(Thread(target=ssh_exec, args=(r + "&",)))
         
     for th in threads:
         th.start()
         
     start_time = time.time()
     for th in threads:
-        th.join(int(target_time) - (time.time() - start_time) + 200)
+        th.join(int(target_time) - (time.time() - start_time) + 100)
         if th.is_alive():
             print("TIME OUT")
 
@@ -105,7 +114,7 @@ def copy_data_file(partitioning):
     partitioning=partitioning.replace(" ", "_")
     cpu_data_file_name = DATA_DIR+"/"+get_workloads_str()+"_cpu_"+partitioning+".cpudata"
     os.system("touch " + cpu_data_file_name)
-    os.system('ssh -p 8080 femu@localhost "sudo cat /pblk-cast_perf/cpu.data" > ' + cpu_data_file_name)
+    os.system('ssh ' + FEMU_ID_IP + ' "sudo cat /pblk-cast_perf/cpu.data" > ' + cpu_data_file_name)
     
     cpu_data_file = open(cpu_data_file_name, 'r')
     # Fail to copy or test
@@ -117,12 +126,12 @@ def copy_data_file(partitioning):
     # Success
     print("copy", cpu_data_file_name) 
     for i in range(len(target_workload)):
-        data_file_name = DATA_DIR+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".data"
+        data_file_name    = DATA_DIR+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".data"
         latency_file_name = DATA_DIR+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".latency"
         os.system("touch " + data_file_name)
         os.system("touch " + latency_file_name)
-        os.system('ssh -p 8080 femu@localhost "sudo cat /pblk-cast_perf/mydev'+str(i)+'.data" > ' + data_file_name)
-        os.system('ssh -p 8080 femu@localhost "sudo cat /sys/block/mydev'+str(i)+'/pblk/latency" > ' + latency_file_name)
+        os.system('ssh ' + FEMU_ID_IP + ' "sudo cat /pblk-cast_perf/mydev'+str(i)+'.data" > ' + data_file_name)
+        os.system('ssh ' + FEMU_ID_IP + ' "sudo cat /sys/block/mydev'+str(i)+'/pblk/latency" > ' + latency_file_name)
         print("copy", data_file_name, latency_file_name)
         time.sleep(0.1)
         
@@ -143,11 +152,16 @@ def exploing(psl):
         test = True
         while test:
             test = False
-            print("case : " + ps)
+            print("Allocation("+str(psl.index(ps)+1) + "/" + str(len(psl))+") : " + ps)
             print("start FEMU VM")
-            time.sleep(5)
-            os.system("cd ~/femu/build-femu/ && ~/femu/build-femu/run-whitebox.sh -b&")
-            time.sleep(120)
+            time.sleep(3)
+            
+            femu_thread = Thread(target=ssh_exec_to_host, args=("cd ~/femu/build-femu/ && ~/femu/build-femu/run-whitebox.sh -b&",))
+            femu_thread.start()
+            
+            for i in range(120):
+                time.sleep(1)
+                print(str(120-i)+"   ",end="\r")
 
             #terminal correcting
             os.system("stty sane")

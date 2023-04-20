@@ -11,7 +11,6 @@ def count_each_part(N, xs, min, max, step):
     ret = {}
     for i in range(min, max+1, step) :
         ret[i] = [0 for _ in range(N)]
-
     for parts in xs :
         if parts == None :
             continue

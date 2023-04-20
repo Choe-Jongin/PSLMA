@@ -84,16 +84,19 @@ class Chunk(object):
 class DataFile(object):
     
     def __init__(self, path = ""):
+        
+        #all chunk list
         self.chunks = []            # all data each seconds
+        
+        #special chunks
         self.avg = Chunk()          # average of chunks
         self.tot = Chunk()          # total value of chunks
-        
-        #peak values
-        self.peak_throughput        = 0
-        self.peak_throughput_read   = 0
-        self.peak_throughput_time   = 0
-        self.peak_throughput_write  = 0
+        self.peak = Chunk()         # peak values
 
+        #etc
+        self.zero_line_count = 0
+        self.last_none_zero_line = 0
+        
         if path != "" :
             self.read_data_file(path)
         
@@ -101,6 +104,7 @@ class DataFile(object):
         self.s_time = 0
         self.e_time = 0
         self.set_period(0, len(self.chunks))
+        
     
     def set_period(self, s = -1, e = -1):
         if s >= 0:
@@ -113,15 +117,16 @@ class DataFile(object):
         
         if self.e_time > len(self.chunks) :
             self.e_time = len(self.chunks)
-            return "out of length"
+            return "out of length(need "+str(e)+", but " + str(len(self.chunks)) + ")"
 
         self.calculate_total()
-        
         return "ok"
             
     def read_data_file(self, path):
         if path == "" :
             return
+        
+        #file read. line by line
         datafile = open(path, 'r')
         for line in datafile.readlines() :
             new_chunk = Chunk()
@@ -150,6 +155,14 @@ class DataFile(object):
                                 int(values[7]),
                                 int(values[8]))
             self.add_chunk(new_chunk)
+            
+            if new_chunk.throughput == 0 :
+                self.zero_line_count += 1
+            else :
+                self.last_none_zero_line = len(self.chunks)
+
+        #trim zero lines
+        self.chunks = self.chunks[:self.last_none_zero_line]
     
     def add_chunk(self, chunk):
         self.chunks.append(chunk)
@@ -179,11 +192,8 @@ class DataFile(object):
         for chunk in self.chunks[start:end]:
             
             #check peak value
-            if self.peak_throughput < chunk.throughput :
-                self.peak_throughput = chunk.throughput 
-                self.peak_throughput_time   = chunk.time
-                self.peak_throughput_read   = chunk.read 
-                self.peak_throughput_write  = chunk.write
+            if self.peak.throughput < chunk.throughput :
+                self.peak = chunk 
             
             #sum each chuck
             self.avg.add_other(chunk)
@@ -202,15 +212,13 @@ class Workload(object):
         self.max_throughput = 0
         self.even_data = object()
         
-    def add_data(self, path, size, is_even=False):
-        new_datafile = DataFile(path)
-        if len(new_datafile.chunks) == 0:
-            print("empty data file")
-            return None
-        
+    def add_data(self, size, datafile, is_even=False):
+        if not size in self.data :
+            self.data[size] = []
+            self.merged_data[size] = object()
+        self.data[size].append(datafile)
         if is_even:
-            self.even_data = new_datafile
-        return new_datafile
+            self.even_data = datafile
     
     #Replace with mean if there are multiple data in a size.
     def reduce(self):
@@ -255,23 +263,30 @@ class Analyzer(object):
         self.full = pl.part_list(N, step, True)
         self.workloads = []
         self.all_datafiles = {}
+        self.total_read_file = 0
+        self.total_read_failed = 0
+        self.read_fail_scenarios = []
         
         #if names is not set, set default name
-        for i in range(len(names), N):
-            names.append('NoName'+chr(65+i))
+        # for i in range(len(names), N):
+        #     names.append('NoName'+chr(65+i))
             
         #set workload name
         for i in range(N):
             self.workloads.append(Workload(names[i]))
         
         #read file by workload
-        for file in os.listdir(dir):
+        files = os.listdir(dir)
+        files.sort()
+        for file in files:
             if file[0] == '.':
                 continue
             if file[-5:] != '.data':
                 continue
             filename = dir+"/"+file
-            print("read", filename)
+            
+            self.total_read_file += 1
+            print("read", filename, end = "")
             
             parse = file
             parse = parse[(parse.find('_')+1):]
@@ -293,13 +308,27 @@ class Analyzer(object):
             elif N == 6 and parsed[:6] == ["2", "2", "3", "3", "3", "3"]:
                 is_even = True
                 
-            new_datafile = self.workloads[index].add_data(filename, int(parsed[index]), is_even)            
-            if new_datafile != None and new_datafile.set_period(s_time,end_time) == "ok":
-                if not int(parsed[index]) in self.workloads[index].data :
-                    self.workloads[index].data[int(parsed[index])] = []
-                    self.workloads[index].merged_data[int(parsed[index])] = object()
-                self.workloads[index].data[int(parsed[index])].append(new_datafile)
-                self.all_datafiles[parse.replace('_', ' ')] = new_datafile
+            new_datafile = self.make_data_from_file(filename)
+            if new_datafile != None  :
+                result = new_datafile.set_period(s_time,end_time)
+                if result == "ok":
+                    self.workloads[index].add_data(int(parsed[index]), new_datafile, is_even)
+                    self.all_datafiles[parse.replace('_', ' ')] = new_datafile
+                else :
+                    self.total_read_failed += 1
+                    self.read_fail_scenarios.append(parse[:-2].replace('_', ' '))
+                print(" \tresult :", result)
+
+        self.read_fail_scenarios = set(self.read_fail_scenarios)    
+        self.read_fail_scenarios = list(self.read_fail_scenarios)
+        self.read_fail_scenarios.sort()
+        print("total read :", self.total_read_file)
+        print("total read failed :", self.total_read_failed)
+        print("total fail scenario :", len(self.read_fail_scenarios))
+        print("[fail scenarios]")
+        for scenario in self.read_fail_scenarios:
+            print(scenario)
+        print("-"*30)
         
         #sort by size. calculate total
         for workload in self.workloads:
@@ -371,11 +400,11 @@ class Analyzer(object):
         print(" | Weighted", end ='')
         [print("%8s"%(name), end = "") for name in names]
         print(" | TBW/day", end ='')
-        [print("%5s"%(name), end = "") for name in names]
-        print(" |      read", end ='')
-        [print("%10s"%(name), end = "") for name in names]
-        print(" |     write", end ='')
-        [print("%10s"%(name), end = "") for name in names]
+        [print("%6s"%(name), end = "") for name in names]
+        print(" |   read", end ='')
+        [print("%7s"%(name), end = "") for name in names]
+        print(" |  write", end ='')
+        [print("%7s"%(name), end = "") for name in names]
         print()
         
         for ps_str in self.full:
@@ -386,16 +415,19 @@ class Analyzer(object):
             target_value5 = 0
 
             tasks={}
-            for i in range(N):
-                parse = ps_str+" "+str(i)
+            for dev in range(N):
+                parse = ps_str+" "+str(dev)
                 if parse in self.all_datafiles.keys():
-                    tasks[i] = self.all_datafiles[parse]
-            for i in range(len(tasks.items())):
+                    tasks[dev] = self.all_datafiles[parse]
+            for i in tasks.keys():
                 target_value1 += tasks[i].avg.throughput//1000
                 target_value2 += (tasks[i].avg.throughput/self.workloads[i].even_data.avg.throughput)
                 target_value3 += tasks[i].avg.w_sum
                 target_value4 += tasks[i].avg.read
                 target_value5 += tasks[i].avg.write
+            
+            if len(tasks.keys()) < N:
+                continue
                 
             print("[", end = "")
             [print("%3d"%(int(p)), end = "") for p in ps_str.strip().split(' ')]
@@ -421,20 +453,25 @@ class Analyzer(object):
             target_value3 = round(target_value3*86400/1000/1000/1000,1)
             print("%8s" % format(target_value3, ',') if target_value3 != 0 else "%8s"%'-', end = '')
             for i in range(N):
-                print("%5s" % (format(round(tasks[i].avg.w_sum*86400/1000/1000/1000,1), ',')) if i in tasks.keys() else "%5s"%'-', end = '')
+                print("%6s" % (format(round(tasks[i].avg.w_sum*86400/1000/1000/1000,1), ',')) if i in tasks.keys() else "%6s"%'-', end = '')
             
             #Read
             print(" |", end = '')    
-            print("%10s" % format(int(target_value4//1000), ',') if target_value1 != 0 else "%10s"%'-', end = '')
+            print("%7s" % format(int(target_value4//1000), ',') if target_value1 != 0 else "%7s"%'-', end = '')
             for i in range(N):
-                print("%10s" % (format(tasks[i].avg.read//1000, ',') if i in tasks.keys() else '-'), end = '')
+                print("%7s" % (format(tasks[i].avg.read//1000, ',') if i in tasks.keys() else '-'), end = '')
+                
             #Write
             print(" |", end = '')
-            print("%10s" % format(int(target_value5//1000), ',') if target_value1 != 0 else "%10s"%'-', end = '')
+            print("%7s" % format(int(target_value5//1000), ',') if target_value1 != 0 else "%7s"%'-', end = '')
             for i in range(N):
-                print("%10s" % (format(tasks[i].avg.write//1000, ',') if i in tasks.keys() else '-'), end = '')
+                print("%7s" % (format(tasks[i].avg.write//1000, ',') if i in tasks.keys() else '-'), end = '')
             
             print()
+            
+    def make_data_from_file(self, path):
+        new_datafile = DataFile(path)
+        return new_datafile
             
 if __name__ == '__main__':
     
