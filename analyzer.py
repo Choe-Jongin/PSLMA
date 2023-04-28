@@ -473,6 +473,20 @@ class Analyzer(object):
         new_datafile = DataFile(path)
         return new_datafile
             
+def get_workload_name_from_dir(dir):
+    dir = os.path.basename(dir)
+    if len(dir) < 6:
+        return []
+    ret = []
+    #version 1 : DATA_ABCD
+    if not dir[6].isdigit():
+        for wl in dir[5:]:
+            ret.append(wl)
+    else :
+        for i in range(0, len(dir[5:]), 2):
+            ret.append(dir[5+i] + dir[5+i+1])
+    return ret
+
 if __name__ == '__main__':
     
     workload_names = []
@@ -482,13 +496,17 @@ if __name__ == '__main__':
     step = 1
     
     if len(sys.argv) == 1 :
-        dir = "data"
+        pass
     elif len(sys.argv) == 2 :
         dir = sys.argv[1]
     elif len(sys.argv) >= 3 :
         for i in range(1, len(sys.argv)):
             if sys.argv[i] == "-p" :
                 dir = sys.argv[i+1]
+                names = get_workload_name_from_dir(dir)
+                if names != []:
+                    workload_names = names
+                
             if sys.argv[i] == "-N" :
                 N = int(sys.argv[i+1])
                 for i in range(1, N+1):
@@ -506,6 +524,5 @@ if __name__ == '__main__':
             if sys.argv[i] == "-step" :      
                 step = int(sys.argv[i+1])
                 
-                    
     #make Analyzer
     analyzer = Analyzer(dir, workload_names, s_time, e_time, step)

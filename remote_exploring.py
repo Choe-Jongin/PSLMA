@@ -1,6 +1,6 @@
 import os
 import sys
-from threading import Thread
+import multiprocessing
 import time
 import part_list as pl
 
@@ -23,12 +23,24 @@ workloads['I'] = "vdbench-write"
 workloads['J'] = "vdbench-web"
 workloads['K'] = "sysbench"
 
+workloads['M1'] = "fio"
+workloads['R1'] = "filebench-webproxy"
+workloads['R2'] = "ycsb-a"
+workloads['R3'] = "ycsb-d"
+workloads['R4'] = "ycsb-f"
+workloads['R5'] = "vdbench-read"
+workloads['R6'] = "vdbench-web"
+workloads['W1'] = "filebench-varmail"
+workloads['W2'] = "filebench-fileserver"
+workloads['W3'] = "vdbench-write"
+workloads['W4'] = "sysbench"
+
 pre=[]
 run=[]
 
 target_workload=[]
 target_datasize = "4G"
-target_time = "600"
+target_time = "300"
 
 def get_workloads_str():
     str = ""
@@ -74,7 +86,7 @@ def prepare_task():
     
     threads=[]
     for p in pre:
-        threads.append(Thread(target=ssh_exec, args=(p + "&",)))
+        threads.append(multiprocessing.Process(target=ssh_exec, args=(p + "&",)))
         
     for th in threads:
         th.start()
@@ -93,7 +105,7 @@ def run_task():
     
     threads=[]
     for r in run:
-        threads.append(Thread(target=ssh_exec, args=(r + "&",)))
+        threads.append(multiprocessing.Process(target=ssh_exec, args=(r + "&",)))
         
     for th in threads:
         th.start()
@@ -107,33 +119,55 @@ def run_task():
 ## get data file ##
 def copy_data_file(partitioning):
     global DATA_DIR
-    if DATA_DIR[0] == '~':
-        DATA_DIR = os.path.expanduser('~')+DATA_DIR[1:]
+    scenario_data_dir = DATA_DIR + "/data_" + get_workloads_str()
+    if scenario_data_dir[0] == '~':
+        scenario_data_dir = os.path.expanduser('~')+scenario_data_dir[1:]
+    
+    if (os.path.isdir(scenario_data_dir) == False):
+        os.system("mkdir " + scenario_data_dir)
 
     partitioning=partitioning.rstrip()
     partitioning=partitioning.replace(" ", "_")
-    cpu_data_file_name = DATA_DIR+"/"+get_workloads_str()+"_cpu_"+partitioning+".cpudata"
+    cpu_data_file_name = scenario_data_dir+"/"+get_workloads_str()+"_cpu_"+partitioning+".cpudata"
     os.system("touch " + cpu_data_file_name)
     os.system('ssh ' + FEMU_ID_IP + ' "sudo cat /pblk-cast_perf/cpu.data" > ' + cpu_data_file_name)
     
     cpu_data_file = open(cpu_data_file_name, 'r')
     # Fail to copy or test
-    if cpu_data_file.read().count("\n") <= int(target_time)*0.8 :
+    if cpu_data_file.read().count("\n") <= int(target_time)*0.9 :
         os.system("rm " + cpu_data_file_name)
         cpu_data_file.close()
+        print("invalid cpu_data_file")
         return "retry"
     
-    # Success
+    # copy each data files
     print("copy", cpu_data_file_name) 
     for i in range(len(target_workload)):
-        data_file_name    = DATA_DIR+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".data"
-        latency_file_name = DATA_DIR+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".latency"
+        data_file_name    =  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".data"
+        latency_file_name =  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".latency"
         os.system("touch " + data_file_name)
         os.system("touch " + latency_file_name)
         os.system('ssh ' + FEMU_ID_IP + ' "sudo cat /pblk-cast_perf/mydev'+str(i)+'.data" > ' + data_file_name)
         os.system('ssh ' + FEMU_ID_IP + ' "sudo cat /sys/block/mydev'+str(i)+'/pblk/latency" > ' + latency_file_name)
         print("copy", data_file_name, latency_file_name)
         time.sleep(0.1)
+        
+        # File Validation
+        data_file = open(data_file_name, 'r')
+        valid_line_count = 0
+        while True:
+            line = data_file.readline()
+            if not line:
+                break
+            if line != "":
+                valid_line_count += 1
+        
+        if valid_line_count <= int(target_time)*0.9:
+            os.system("rm " + cpu_data_file_name)
+            os.system("rm " +  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_*.data")
+            os.system("rm " +  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_*.latency")
+            print("invalid file :", data_file_name)
+            return "retry"
         
     return "complete"
 
@@ -152,17 +186,18 @@ def exploing(psl):
         test = True
         while test:
             test = False
-            print("Allocation("+str(psl.index(ps)+1) + "/" + str(len(psl))+") : " + ps)
+            print("\033[01m\033[31mAllocation("+str(psl.index(ps)+1) + "/" + str(len(psl))+") : " + ps, "\033[0m")
             print("start FEMU VM")
             time.sleep(3)
             
-            femu_thread = Thread(target=ssh_exec_to_host, args=("cd ~/femu/build-femu/ && ~/femu/build-femu/run-whitebox.sh -b&",))
+            femu_thread = multiprocessing.Process(target=ssh_exec_to_host, args=("cd ~/femu/build-femu/ && ~/femu/build-femu/run-whitebox.sh -b",))
             femu_thread.start()
             
-            for i in range(120):
+            for i in range(100):
                 time.sleep(1)
-                print(str(120-i)+"   ",end="\r")
-
+                print("\rwait..." +str(100-i)+"   ",end="")
+            print("")
+            
             #terminal correcting
             os.system("stty sane")
 
@@ -198,7 +233,7 @@ def exploing(psl):
             
             #unmount
             #time.sleep(10)
-            # unmount_thr = Thread(target=ssh_exec, args=('sudo /unmount.sh',))
+            # unmount_thr = multiprocessing.Process(target=ssh_exec, args=('sudo /unmount.sh',))
             # unmount_thr.start()
             # for _ in range(10) :
             #     if unmount_thr.is_alive() :
