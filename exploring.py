@@ -12,18 +12,19 @@ run=[]
 
 SCRIPT_DIR="/scripts"
 workloads={}
-workloads['A'] = "fio"
-workloads['B'] = "filebench-varmail"
-workloads['C'] = "filebench-webproxy"
-workloads['D'] = "filebench-fileserver"
-workloads['E'] = "ycsb-a"
-workloads['F'] = "ycsb-d"
-workloads['G'] = "ycsb-f"
-workloads['H'] = "vdbench-read"
-workloads['I'] = "vdbench-write"
-workloads['J'] = "vdbench-web"
-workloads['K'] = "sysbench"
+workloads['M1'] = "fio"
 
+workloads['R1'] = "vdbench-read"
+workloads['R2'] = "vdbench-web"
+workloads['R3'] = "ycsb-a"
+workloads['R4'] = "ycsb-d"
+workloads['R5'] = "ycsb-f"
+workloads['R6'] = "filebench-webproxy"
+
+workloads['W1'] = "sysbench"
+workloads['W2'] = "filebench-fileserver"
+workloads['W3'] = "filebench-varmail"
+workloads['W4'] = "vdbench-write"
 target_workload=[]
 target_datasize = "4G"
 target_time = "600"

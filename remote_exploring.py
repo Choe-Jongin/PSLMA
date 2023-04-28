@@ -11,29 +11,19 @@ REMOTE_ID_IP="jongin@166.104.246.86"
 
 SCRIPT_DIR="/scripts"
 workloads={}
-workloads['A'] = "fio"
-workloads['B'] = "filebench-varmail"
-workloads['C'] = "filebench-webproxy"
-workloads['D'] = "filebench-fileserver"
-workloads['E'] = "ycsb-a"
-workloads['F'] = "ycsb-d"
-workloads['G'] = "ycsb-f"
-workloads['H'] = "vdbench-read"
-workloads['I'] = "vdbench-write"
-workloads['J'] = "vdbench-web"
-workloads['K'] = "sysbench"
-
 workloads['M1'] = "fio"
-workloads['R1'] = "filebench-webproxy"
-workloads['R2'] = "ycsb-a"
-workloads['R3'] = "ycsb-d"
-workloads['R4'] = "ycsb-f"
-workloads['R5'] = "vdbench-read"
-workloads['R6'] = "vdbench-web"
-workloads['W1'] = "filebench-varmail"
+
+workloads['R1'] = "vdbench-read"
+workloads['R2'] = "vdbench-web"
+workloads['R3'] = "ycsb-a"
+workloads['R4'] = "ycsb-d"
+workloads['R5'] = "ycsb-f"
+workloads['R6'] = "filebench-webproxy"
+
+workloads['W1'] = "sysbench"
 workloads['W2'] = "filebench-fileserver"
-workloads['W3'] = "vdbench-write"
-workloads['W4'] = "sysbench"
+workloads['W3'] = "filebench-varmail"
+workloads['W4'] = "vdbench-write"
 
 pre=[]
 run=[]
