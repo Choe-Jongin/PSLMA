@@ -2,7 +2,9 @@ import os
 import sys
 import multiprocessing
 import time
+
 import part_list as pl
+from cast_data_file import DataFile
 
 #global settings
 DATA_DIR="~/data"
@@ -142,17 +144,9 @@ def copy_data_file(partitioning):
         print("copy", data_file_name, latency_file_name)
         time.sleep(0.1)
         
-        # File Validation
-        data_file = open(data_file_name, 'r')
-        valid_line_count = 0
-        while True:
-            line = data_file.readline()
-            if not line:
-                break
-            if line != "":
-                valid_line_count += 1
-        
-        if valid_line_count <= int(target_time)*0.9:
+        # File Validation Check
+        data_file = DataFile(data_file_name)        
+        if data_file.last_none_zero_line <= int(target_time)*0.9:
             os.system("rm " + cpu_data_file_name)
             os.system("rm " +  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_*.data")
             os.system("rm " +  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_*.latency")
@@ -201,13 +195,19 @@ def exploing(psl):
             ssh_exec("sudo /mount.sh "+ps)
 
             #prepare
-            prepare_task()
+            try:
+                prepare_task()
+            except KeyboardInterrupt:
+                print("exit prepare")
             
             #active
             ssh_exec('sudo echo 1 | sudo tee /sys/block/mydev0/pblk/cast_active');
 
             #run
-            run_task()
+            try:
+                run_task()
+            except KeyboardInterrupt:
+                print("exit run")
 
             #docker close
             ssh_exec("sudo docker rm \$(sudo docker ps -aq) -f")
@@ -218,7 +218,7 @@ def exploing(psl):
             #copy data
             if copy_data_file(ps) == "retry":
                 print(ps, "Fail...")
-                print("retry")
+                print("\033[01m\033[31mretry\033[0m")
                 test = True
             
             #unmount

@@ -4,6 +4,10 @@ from threading import Thread
 import time
 import part_list as pl
 
+#######################################################################
+#  TEMPORARY  #  TEMPORARY  #  TEMPORARY  #  TEMPORARY  #  TEMPORARY  #
+#######################################################################
+
 #global settings
 DATA_DIR="~/data"
 
