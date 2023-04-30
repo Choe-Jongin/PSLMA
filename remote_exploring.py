@@ -168,6 +168,7 @@ def exploing(psl):
     
     for ps in psl:
         test = True
+        retry_count = 0
         while test:
             test = False
             print("\033[01m\033[31mAllocation("+str(psl.index(ps)+1) + "/" + str(len(psl))+") : " + ps, "\033[0m")
@@ -218,8 +219,11 @@ def exploing(psl):
             #copy data
             if copy_data_file(ps) == "retry":
                 print(ps, "Fail...")
-                print("\033[01m\033[31mretry\033[0m")
+                retry_count += 1
+                print("\033[01m\033[31mretry", retry_count,"\033[0m")
                 test = True
+            else :
+                retry_count = 0
             
             #unmount
             #time.sleep(10)

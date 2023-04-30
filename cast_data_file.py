@@ -11,7 +11,7 @@ class DataFile(object):
         self.avg = Chunk()          # average of chunks         : object
         self.tot = Chunk()          # total value of chunks     : object
         self.peak = Chunk()         # peak throughput Chunk     : pointer
-
+        
         #etc
         self.zero_line_count = 0
         self.last_none_zero_line = 0
@@ -59,7 +59,13 @@ class DataFile(object):
     
     def add_chunk(self, chunk):
         self.chunks.append(chunk)
-    
+        
+    def set_even_data_file(self, even_file):
+        self.even_data_file = even_file
+        
+    def get_even_data_file(self):
+        return self.even_data_file
+        
     #TODO : sync
     #sum two data file
     def add(self, other):           

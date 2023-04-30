@@ -5,8 +5,8 @@ class Workload(object):
     
     def __init__(self, name):
         self.name = name
-        self.data = {}
-        self.merged_data = {}
+        self.data = {}          # key:size, value:data_file_list
+        self.merged_data = {}   # key:size, value:data_file
         self.even_data = object()
         
     def sort(self):
@@ -33,17 +33,22 @@ class Workload(object):
     
     #Replace with mean if there are multiple data in a size.
     def reduce(self):
-        for size, datum in self.data.items(): # size, data file list pair
-            print("size :", size, "\t|#", len(datum))
-            if len(datum) == 0 :
+        for size, data_list in self.data.items(): # size, data file list pair
+            print("size :", size, "\t|#", len(data_list))
+            if len(data_list) == 0 :
                 continue
-            self.merged_data[size] = copy.deepcopy(datum[0])
+            self.merged_data[size] = copy.deepcopy(data_list[0])
             
             #sum then divide
-            for merge in datum[1:]:
+            for merge in data_list[1:]:
                 self.merged_data[size].add(merge)
-            self.merged_data[size].divide(len(datum))
+            self.merged_data[size].divide(len(data_list))
             self.merged_data[size].calculate_total()
+    
+    def distribute_even(self):
+        for data_list in self.data.values():
+            for data in data_list:
+                data.set_even_data_file(self.even_data)
     
     def get_data(self, size):
         if size in self.merged_data.keys():

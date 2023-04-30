@@ -1,6 +1,7 @@
 import sys
 import os
 import part_list as pl
+from utils import str_w
 from cast_workload import Workload
 from cast_data_file import DataFile
 
@@ -21,23 +22,24 @@ class Analyzer(object):
         self.total_read_failed = 0
         self.read_fail_scenarios = []
         self.s_time, self.e_time = s_time, e_time
-            
+        
         #set workload name
         for i in range(self.N):
             self.workloads.append(Workload(names[i]))
         
         #read file by workload
         self.all_file_read(dir)
-                
+        
         #sort by size
         for workload in self.workloads:
             workload.sort()
-            
-        #calculate total
+        
+        #calculate
         for workload in self.workloads:
+            workload.distribute_even()
             workload.reduce()
             print(workload.data.keys())
-        
+            
         self.print_analysis()
     
     def all_file_read(self, dir):
@@ -86,106 +88,71 @@ class Analyzer(object):
             for scenario in self.read_fail_scenarios:
                 print(scenario)
             print("----------- END -----------")
-    
-    
-    def print_col(self, caption, width):
-        str_len = len(caption)
-        print(" "+caption, end ='')
-        [print(" "*(width-len(name)),name, sep="", end = "") for name in self.names]
-        print("  ", end = "")
         
     # show result
     def print_analysis(self):
+        self.header_widths = {}
+        self.row_widths = {}
+        self.func_dict = {}
+        self.sum_of_values = {}
         
         print("-"*80)
+        # avg by each size for workload
         self.print_by_workload("Average Throughput/s", lambda x : round(x.avg.throughput))
         self.print_by_workload("Flash Write per day", lambda x : round(x.avg.w_sum*86400/1000**3))
         self.print_by_workload("Average WAF"        , lambda x : round(x.avg.waf*100))
         self.print_by_workload("Average write/s"    , lambda x : round(x.avg.write))
         self.print_by_workload("Average read/s"     , lambda x : round(x.avg.read))
         
-        ########################################################################
-        print(" "*(self.N*3+5), end ='')
-        self.print_col("MByte/s", 8)
-        self.print_col("Weighted", 8)
-        self.print_col("TBW/day", 6)
-        self.print_col("read", 7)
-        self.print_col("write", 7)
-        # print("MByte/s", end ='')
-        # [print("%8s"%(name), end = "") for name in names]
-        # print(" | Weighted", end ='')
-        # [print("%8s"%(name), end = "") for name in names]
-        # print(" | TBW/day", end ='')
-        # [print("%6s"%(name), end = "") for name in names]
-        # print(" |   read", end ='')
-        # [print("%7s"%(name), end = "") for name in names]
-        # print(" |  write", end ='')
-        # [print("%7s"%(name), end = "") for name in names]
-        
+        # print header
+        print(" "*(self.N*3+4), end ='')
+        self.register_col_header("MByte/s",  8, lambda x : x.avg.throughput//1000)
+        # self.register_col_header("Weighted", 8, lambda x : x.avg.throughput/x.even_data_file.avg.throughput)
+        self.register_col_header("TBW/day",  6, lambda x : x.avg.w_sum*86400/1000**3)
+        self.register_col_header("  read",   6, lambda x : x.avg.read//1000)
+        self.register_col_header(" write",   6, lambda x : x.avg.write//1000)
         print()
         
-        for ps_str in self.full:
-            target_value1 = 0
-            target_value2 = 0
-            target_value3 = 0
-            target_value4 = 0
-            target_value5 = 0
+        # print valid partition
+        self.print_cols(True)       
+        # print invalid partition
+        print("\033[31m", end="")
+        self.print_cols(False)     
+        print("\033[0m", end="")
 
+    def print_cols(self, only_valid = True):
+        for ps_str in self.full:
+            # init
+            for header in self.sum_of_values.keys():
+                self.sum_of_values[header] = 0
+
+            # get all device(partition)
             tasks={}
-            for dev in range(self.N):
-                parse = ps_str+" "+str(dev)
-                if parse in self.all_datafiles.keys():
-                    tasks[dev] = self.all_datafiles[parse]
-            for i in tasks.keys():
-                target_value1 += tasks[i].avg.throughput//1000
-                target_value2 += (tasks[i].avg.throughput/self.workloads[i].even_data.avg.throughput)
-                target_value3 += tasks[i].avg.w_sum
-                target_value4 += tasks[i].avg.read
-                target_value5 += tasks[i].avg.write
+            for dev in range(self.N):                           # all dev(partition num)
+                datafile = ps_str+" "+str(dev)                  # partition + dev ex) 3_3_10 -> 3_3_10_0 ~ 3_3_10_2
+                if datafile in self.all_datafiles.keys():       # 3_3_10_0 in self.all_datafiles ??
+                    tasks[dev] = self.all_datafiles[datafile]   # task[0] = 3_3_10_0.data ~ task[2] = 3_3_10_2.data 
+                    
+            for task in tasks.values():
+                for value in self.sum_of_values.keys():
+                    self.sum_of_values[value] += self.func_dict[value](task)
             
-            if len(tasks.keys()) < self.N:
+            if only_valid and len(tasks.keys()) < self.N:
                 continue
-                
+            if not only_valid and len(tasks.keys()) >= self.N:
+                continue
+            
             print("[", end = "")
             [print("%3d"%(int(p)), end = "") for p in ps_str.strip().split(' ')]
             print(" ] ", end = '')
             
-            #Throughput
-            print("%9s" % format(int(target_value1), ',') if target_value1 != 0 else "%9s"%'-', end = '')
-            for i in range(self.N):
-                print("%8s" % (format(tasks[i].avg.throughput//1000, ',') if i in tasks.keys() else '-'), end = '')
-
-            #Weighted
-            print(" |", end = '')
-            print("%9.2f" % (target_value2) if target_value2 != 0 else "%9s"%'-' , end = '')
-            for i in range(self.N):
-                data = 0
-                if i in tasks.keys():
-                    if self.workloads[i].even_data.avg.throughput > 0 :
-                        data = round((tasks[i].avg.throughput/self.workloads[i].even_data.avg.throughput), 2)
-                print("%8s" % (format(data, ',') if i in tasks.keys() else '-'), end = '')
-            
-            #TBW
-            print(" |", end = '')
-            target_value3 = round(target_value3*86400/1000/1000/1000,1)
-            print("%8s" % format(target_value3, ',') if target_value3 != 0 else "%8s"%'-', end = '')
-            for i in range(self.N):
-                print("%6s" % (format(round(tasks[i].avg.w_sum*86400/1000/1000/1000,1), ',')) if i in tasks.keys() else "%6s"%'-', end = '')
-            
-            #Read
-            print(" |", end = '')    
-            print("%7s" % format(int(target_value4//1000), ',') if target_value1 != 0 else "%7s"%'-', end = '')
-            for i in range(self.N):
-                print("%7s" % (format(tasks[i].avg.read//1000, ',') if i in tasks.keys() else '-'), end = '')
-                
-            #Write
-            print(" |", end = '')
-            print("%7s" % format(int(target_value5//1000), ',') if target_value1 != 0 else "%7s"%'-', end = '')
-            for i in range(self.N):
-                print("%7s" % (format(tasks[i].avg.write//1000, ',') if i in tasks.keys() else '-'), end = '')
-            
+            self.print_by_case(tasks, "MByte/s")
+            # self.print_by_case(tasks, "Weighted", round_point=2)
+            self.print_by_case(tasks, "TBW/day")
+            self.print_by_case(tasks, "  read")
+            self.print_by_case(tasks, " write")
             print()
-
+            
     def print_by_workload(self, title, field_func):
         # get all sizes
         sizes = []
@@ -211,10 +178,38 @@ class Analyzer(object):
                     print('%10s' % format(data, ','), end = "")
             print()     
         print()
-        
-    def print_by_case(self, title, field_func):
-        pass
 
+    def register_col_header(self, header, width, func):
+        self.header_widths[header]  = len(header)
+        self.row_widths[header]     = width
+        self.func_dict[header]      = func
+        self.sum_of_values[header]  = 0
+        
+        print(header, end ='')
+        [print(str_w(name, width), sep="", end = "") for name in self.names]
+        print(" | ", end = "")
+        
+    def print_by_case(self, tasks, value, round_point = 0):
+        width_total = self.header_widths[value]
+        width_each  = self.row_widths[value]
+        values, funcs = self.sum_of_values, self.func_dict
+        
+        #total
+        data = round(values[value], round_point)
+        if data != 0 :
+            print(str_w(format(data, ','), width_total), end = '')
+        else :
+            print(str_w("-", width_total), end = '')
+        
+        #each
+        for i in range(self.N):
+            if i in tasks.keys():
+                data = round(funcs[value](tasks[i]), round_point)
+                print(str_w(format(data, ','), width_each), end = '')
+            else:
+                print(str_w("-", width_each), end = '')
+        print(" | ", end = '')
+    
     #### utils ####            
     def is_even_partition(self, N, partitions):
         if N == 2 and partitions[:2] == ["8", "8"]:
@@ -228,7 +223,6 @@ class Analyzer(object):
         elif N == 6 and partitions[:6] == ["2", "2", "3", "3", "3", "3"]:
             return True
         return False
-        
 
 def get_workload_name_from_dir(dir):
     dir = os.path.basename(dir)

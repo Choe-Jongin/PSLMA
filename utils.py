@@ -55,3 +55,6 @@ def print_dict(dict):
         for j in dict[k]:
             print("%2d"%(j) , end = ' ')
         print("]")
+        
+def str_w(str, w):
+    return " "*(w-len(str))+str
