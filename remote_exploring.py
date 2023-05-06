@@ -27,6 +27,10 @@ workloads['W2'] = "filebench-fileserver"
 workloads['W3'] = "filebench-varmail"
 workloads['W4'] = "vdbench-write"
 
+workloads['L1'] = "cachebench_graph"
+workloads['L2'] = "cachebench_reg"
+workloads['L3'] = "cachebench_wc"
+
 pre=[]
 run=[]
 
@@ -136,12 +140,15 @@ def copy_data_file(partitioning):
     print("copy", cpu_data_file_name) 
     for i in range(len(target_workload)):
         data_file_name    =  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".data"
-        latency_file_name =  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".latency"
+        r_latency_file_name =  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".read_latency"
+        w_latency_file_name =  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_"+str(i)+".write_latency"
         os.system("touch " + data_file_name)
-        os.system("touch " + latency_file_name)
+        os.system("touch " + r_latency_file_name)
+        os.system("touch " + w_latency_file_name)
         os.system('ssh ' + FEMU_ID_IP + ' "sudo cat /pblk-cast_perf/mydev'+str(i)+'.data" > ' + data_file_name)
-        os.system('ssh ' + FEMU_ID_IP + ' "sudo cat /sys/block/mydev'+str(i)+'/pblk/latency" > ' + latency_file_name)
-        print("copy", data_file_name, latency_file_name)
+        os.system('ssh ' + FEMU_ID_IP + ' "sudo cat /sys/block/mydev'+str(i)+'/pblk/read_latency" > ' + r_latency_file_name)
+        os.system('ssh ' + FEMU_ID_IP + ' "sudo cat /sys/block/mydev'+str(i)+'/pblk/write_latency" > ' + w_latency_file_name)
+        print("copy", data_file_name)
         time.sleep(0.1)
         
         # File Validation Check
@@ -239,7 +246,7 @@ def exploing(psl):
             print("shutdown FEMU VM")
             ssh_exec("sudo shutdown now")
 
-            time.sleep(30)
+            time.sleep(20)
 
 #### entry point ####
 def main():

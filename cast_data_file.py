@@ -1,4 +1,5 @@
 from cast_chunk import Chunk
+from cast_latency_file import Latency_file
 
 class DataFile(object):
     
@@ -12,6 +13,9 @@ class DataFile(object):
         self.tot = Chunk()          # total value of chunks     : object
         self.peak = Chunk()         # peak throughput Chunk     : pointer
         
+        #latency
+        self.latency_buckets = object() # key:size, value:latency_file
+                
         #etc
         self.zero_line_count = 0
         self.last_none_zero_line = 0
@@ -56,6 +60,8 @@ class DataFile(object):
 
         #trim zero lines
         self.chunks = self.chunks[:self.last_none_zero_line]
+        
+        self.latency_buckets = Latency_file(path.replace(".data", ".latency"))
     
     def add_chunk(self, chunk):
         self.chunks.append(chunk)
@@ -77,9 +83,12 @@ class DataFile(object):
         for i in range(self.s_time, self.e_time):
             self.chunks[i].add_other(other.chunks[i])
             
+        self.latency_buckets.add(other.latency_buckets)
+            
     def divide(self, num):
         for i in range(self.s_time, self.e_time):
             self.chunks[i].divide(num)
+        self.latency_buckets.divide(num)
             
     def calculate_total(self):
         start   = self.s_time

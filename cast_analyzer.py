@@ -4,6 +4,7 @@ import part_list as pl
 from utils import str_w
 from cast_workload import Workload
 from cast_data_file import DataFile
+from cast_latency_file import Latency_file
 
 class Analyzer(object):
     
@@ -66,11 +67,12 @@ class Analyzer(object):
             size  = int(parsed[index])          # get partition size  ex) index = 2 -> 3_3_[10]
             even  = self.is_even_partition(self.N, parsed)
                 
-            new_datafile = DataFile(filename)
-            result = new_datafile.set_period(s_time, e_time)
+            new_data_file       = DataFile(filename)
+            
+            result = new_data_file.set_period(s_time, e_time)
             if result == "ok":
-                self.workloads[index].add_data(size, new_datafile, even)
-                self.all_datafiles[parse.replace('_', ' ')] = new_datafile
+                self.workloads[index].add_data(size, new_data_file, even)
+                self.all_datafiles[parse.replace('_', ' ')] = new_data_file
             else :
                 self.total_read_failed += 1
                 self.read_fail_scenarios.append(parse[:-2].replace('_', ' '))   # eliminate device(part) name
@@ -99,16 +101,28 @@ class Analyzer(object):
         print("-"*80)
         # avg by each size for workload
         self.print_by_workload("Average Throughput/s", lambda x : round(x.avg.throughput))
-        self.print_by_workload("Flash Write per day", lambda x : round(x.avg.w_sum*86400/1000**3))
+        self.print_by_workload("Weighted", lambda x : round(x.avg.throughput/x.even_data_file.avg.throughput,2))
+        self.print_by_workload("METRIC3", lambda x : round(x.avg.throughput/x.avg.w_sum,2))
         self.print_by_workload("Average WAF"        , lambda x : round(x.avg.waf*100))
+        self.print_by_workload("avg latnecy"     , lambda x : round(x.latency_buckets.get_avg()))
+        self.print_by_workload("10% latnecy"     , lambda x : round(x.latency_buckets.get_n_percent(0.1)))
+        self.print_by_workload("30% latnecy"     , lambda x : round(x.latency_buckets.get_n_percent(0.3)))
+        self.print_by_workload("50% latnecy"     , lambda x : round(x.latency_buckets.get_n_percent(0.5)))
+        self.print_by_workload("90% latnecy"     , lambda x : round(x.latency_buckets.get_n_percent(0.9)))
+        self.print_by_workload("99% latnecy"     , lambda x : round(x.latency_buckets.get_n_percent(0.99)))
+        self.print_by_workload("99.9% latnecy"     , lambda x : round(x.latency_buckets.get_n_percent(0.999)))
+        self.print_by_workload("99.99% latnecy"     , lambda x : round(x.latency_buckets.get_n_percent(0.9999)))
+        print("[Detail]")
         self.print_by_workload("Average write/s"    , lambda x : round(x.avg.write))
         self.print_by_workload("Average read/s"     , lambda x : round(x.avg.read))
         
-        # print header
+        # print header 
         print(" "*(self.N*3+4), end ='')
-        self.register_col_header("MByte/s",  8, lambda x : x.avg.throughput//1000)
-        # self.register_col_header("Weighted", 8, lambda x : x.avg.throughput/x.even_data_file.avg.throughput)
-        self.register_col_header("TBW/day",  6, lambda x : x.avg.w_sum*86400/1000**3)
+        self.register_col_header("1.MByte/s",  8, lambda x : x.avg.throughput//1000)
+        self.register_col_header("2.Weighted", 8, lambda x : x.avg.throughput/x.even_data_file.avg.throughput)
+        # self.register_col_header("TBW/day",  6, lambda x : x.avg.w_sum*86400/1000**3)
+        self.register_col_header("3.metric3",  6, lambda x : x.avg.throughput/x.avg.w_sum)
+        self.register_col_header("4.avg lat",  7, lambda x : round(x.latency_buckets.get_avg()))
         self.register_col_header("  read",   6, lambda x : x.avg.read//1000)
         self.register_col_header(" write",   6, lambda x : x.avg.write//1000)
         print()
@@ -146,9 +160,10 @@ class Analyzer(object):
             [print("%3d"%(int(p)), end = "") for p in ps_str.strip().split(' ')]
             print(" ] ", end = '')
             
-            self.print_by_case(tasks, "MByte/s")
-            # self.print_by_case(tasks, "Weighted", round_point=2)
-            self.print_by_case(tasks, "TBW/day")
+            self.print_by_case(tasks, "1.MByte/s")
+            self.print_by_case(tasks, "2.Weighted", round_point=2)
+            self.print_by_case(tasks, "3.metric3", round_point=2)
+            self.print_by_case(tasks, "4.avg lat", avg = True)
             self.print_by_case(tasks, "  read")
             self.print_by_case(tasks, " write")
             print()
@@ -189,13 +204,16 @@ class Analyzer(object):
         [print(str_w(name, width), sep="", end = "") for name in self.names]
         print(" | ", end = "")
         
-    def print_by_case(self, tasks, value, round_point = 0):
+    def print_by_case(self, tasks, value, round_point = 0, avg = False):
         width_total = self.header_widths[value]
         width_each  = self.row_widths[value]
         values, funcs = self.sum_of_values, self.func_dict
         
         #total
-        data = round(values[value], round_point)
+        if avg == False:
+            data = round(values[value], round_point)
+        else :
+            data = round(values[value]/self.N, round_point)
         if data != 0 :
             print(str_w(format(data, ','), width_total), end = '')
         else :
