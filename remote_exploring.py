@@ -156,7 +156,8 @@ def copy_data_file(partitioning):
         if data_file.last_none_zero_line <= int(target_time)*0.9:
             os.system("rm " + cpu_data_file_name)
             os.system("rm " +  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_*.data")
-            os.system("rm " +  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_*.latency")
+            os.system("rm " +  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_*.read_latency")
+            os.system("rm " +  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_*.write_latency")
             print("invalid file :", data_file_name)
             return "retry"
         
