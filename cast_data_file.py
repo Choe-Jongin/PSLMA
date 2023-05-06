@@ -14,7 +14,7 @@ class DataFile(object):
         self.peak = Chunk()         # peak throughput Chunk     : pointer
         
         #latency
-        self.latency_buckets = object() # key:size, value:latency_file
+        self.w_latency_buckets = object() # key:size, value:latency_file
                 
         #etc
         self.zero_line_count = 0
@@ -61,7 +61,8 @@ class DataFile(object):
         #trim zero lines
         self.chunks = self.chunks[:self.last_none_zero_line]
         
-        self.latency_buckets = Latency_file(path.replace(".data", ".latency"))
+        self.r_latency_buckets = Latency_file(path.replace(".data", ".read_latency"))
+        self.w_latency_buckets = Latency_file(path.replace(".data", ".write_latency"))
     
     def add_chunk(self, chunk):
         self.chunks.append(chunk)
@@ -83,12 +84,14 @@ class DataFile(object):
         for i in range(self.s_time, self.e_time):
             self.chunks[i].add_other(other.chunks[i])
             
-        self.latency_buckets.add(other.latency_buckets)
+        self.r_latency_buckets.add(other.r_latency_buckets)
+        self.w_latency_buckets.add(other.w_latency_buckets)
             
     def divide(self, num):
         for i in range(self.s_time, self.e_time):
             self.chunks[i].divide(num)
-        self.latency_buckets.divide(num)
+        self.r_latency_buckets.divide(num)
+        self.w_latency_buckets.divide(num)
             
     def calculate_total(self):
         start   = self.s_time
