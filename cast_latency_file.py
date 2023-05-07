@@ -3,24 +3,31 @@ class Latency_file(object):
     
     def __init__(self, path = ""):
         self.array = []
-        datafile = open(path, 'r')
-        line = datafile.readline().split(' ')
-        # print()
-        # print(len(line), (line))
+        self.path = path
+        self.valid = True
+        try :
+            file = open(path, 'r')
+        except FileNotFoundError:
+            self.valid = False
+            return
+        
+        line = file.readline().split(' ')
+        # print(len(line), (line), end =" ")
         for word in line:
             if  word.isdigit():
                 self.array.append(int(word))
-        self.array = self.array[:700]
+        # print(len(self.array), end =" ")
+        self.array = self.array[:750]
         self.type = 0       # 1024, 512, 256        
+        file.close()
         
-        
-    def get_total(self,):
+    def get_total(self):
         total = 0
         for location in self.array:
             total+=location
         return total
                 
-    def get_avg(self,):
+    def get_avg(self):
         accumulated = 0
         for i in range(len(self.array)):
             latency = self.get_latency(i)
@@ -37,7 +44,7 @@ class Latency_file(object):
             prev_location += self.array[i]
             
             if(prev_location >= per_location) :
-                return latency + ((per_location-per_location)/self.array[i])*5
+                return int(latency + ((prev_location-per_location)/self.array[i])*5)
             else :
                 continue
             
@@ -51,4 +58,4 @@ class Latency_file(object):
         
     def divide(self, num): 
         for i in range(len(self.array)):
-            self.array[i] /= num
+            self.array[i] //= num

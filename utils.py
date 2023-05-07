@@ -57,4 +57,4 @@ def print_dict(dict):
         print("]")
         
 def str_w(str, w):
-    return " "*(w-len(str))+str
+    return " "*(int(w)-len(str))+str

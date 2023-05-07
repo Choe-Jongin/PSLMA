@@ -1,3 +1,4 @@
+import copy
 from cast_chunk import Chunk
 from cast_latency_file import Latency_file
 
@@ -14,7 +15,9 @@ class DataFile(object):
         self.peak = Chunk()         # peak throughput Chunk     : pointer
         
         #latency
-        self.w_latency_buckets = object() # key:size, value:latency_file
+        self.latency_buckets = object()
+        self.r_latency_buckets = object()
+        self.r_latency_buckets = object()
                 
         #etc
         self.zero_line_count = 0
@@ -61,8 +64,18 @@ class DataFile(object):
         #trim zero lines
         self.chunks = self.chunks[:self.last_none_zero_line]
         
+        # read latency file
+        self.latency_buckets = Latency_file(path.replace(".data", ".latency"))
         self.r_latency_buckets = Latency_file(path.replace(".data", ".read_latency"))
         self.w_latency_buckets = Latency_file(path.replace(".data", ".write_latency"))
+                
+        if self.latency_buckets.valid :    # latency ver 1
+            self.r_latency_buckets = self.latency_buckets
+            self.w_latency_buckets = self.latency_buckets
+        else :                              # latency ver 2
+            self.latency_buckets = copy.deepcopy(self.r_latency_buckets)
+            self.latency_buckets.add(self.w_latency_buckets)
+            
     
     def add_chunk(self, chunk):
         self.chunks.append(chunk)

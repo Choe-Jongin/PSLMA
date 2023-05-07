@@ -67,7 +67,7 @@ class Analyzer(object):
             size  = int(parsed[index])          # get partition size  ex) index = 2 -> 3_3_[10]
             even  = self.is_even_partition(self.N, parsed)
                 
-            new_data_file       = DataFile(filename)
+            new_data_file = DataFile(filename)
             
             result = new_data_file.set_period(s_time, e_time)
             if result == "ok":
@@ -76,7 +76,7 @@ class Analyzer(object):
             else :
                 self.total_read_failed += 1
                 self.read_fail_scenarios.append(parse[:-2].replace('_', ' '))   # eliminate device(part) name
-            print(" \tresult :", result)
+            print(" \t line :",len(new_data_file.chunks)," \tresult :", result)
 
         self.read_fail_scenarios = list(set(self.read_fail_scenarios) ) # eliminate duplicates
         self.read_fail_scenarios.sort()                                 # sort by partitions
@@ -100,29 +100,42 @@ class Analyzer(object):
         
         print("-"*80)
         # avg by each size for workload
+        print("┌── Main Metrics")
         self.print_by_workload("Average Throughput/s", lambda x : round(x.avg.throughput))
         self.print_by_workload("Weighted", lambda x : round(x.avg.throughput/x.even_data_file.avg.throughput,2))
         self.print_by_workload("METRIC3", lambda x : round(x.avg.throughput/x.avg.w_sum,2))
-        self.print_by_workload("Average WAF"        , lambda x : round(x.avg.waf*100))
-        self.print_by_workload("avg latnecy"     , lambda x : round(x.r_latency_buckets.get_avg()))
-        self.print_by_workload("10% latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.1)))
-        self.print_by_workload("30% latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.3)))
-        self.print_by_workload("50% latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.5)))
-        self.print_by_workload("90% latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.9)))
-        self.print_by_workload("99% latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.99)))
-        self.print_by_workload("99.9% latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.999)))
-        self.print_by_workload("99.99% latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.9999)))
-        print("[Detail]")
+        self.print_by_workload("99.99% read latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.9999)))
+        print("└──")
+        
+        print("┌── Detail Throughput")
         self.print_by_workload("Average write/s"    , lambda x : round(x.avg.write))
         self.print_by_workload("Average read/s"     , lambda x : round(x.avg.read))
+        self.print_by_workload("Average WAF"        , lambda x : round(x.avg.waf*100))
+        print("└──")
+        
+        print("┌── Detail Latency")
+        self.print_by_workload("avg read latnecy"       , lambda x : round(x.r_latency_buckets.get_avg()))
+        self.print_by_workload("10% read latnecy"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.1)))
+        self.print_by_workload("50% read latnecy"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.5)))
+        self.print_by_workload("90% read latnecy"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.9)))
+        self.print_by_workload("99% read latnecy"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.99)))
+        self.print_by_workload("99.9% read latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.999)))
+        self.print_by_workload("99.99% read latnecy"    , lambda x : round(x.r_latency_buckets.get_n_percent(0.9999)))
+        print("└──")
+        
+        ########################################################################
         
         # print header 
-        print(" "*(self.N*3+4), end ='')
-        self.register_col_header("1.MByte/s",  8, lambda x : x.avg.throughput//1000)
-        self.register_col_header("2.Weighted", 8, lambda x : x.avg.throughput/x.even_data_file.avg.throughput)
+        # print(" "*(self.N*3+4), end ='')
+        print("[", end = "")
+        [print("%3s"%(wl), end = "") for wl in self.names]
+        print(" ] ", end = '')
+        self.register_col_header("[1]MByte/s",  8, lambda x : x.avg.throughput//1000)
+        self.register_col_header("[2]Weighted", 8, lambda x : x.avg.throughput/x.even_data_file.avg.throughput)
         # self.register_col_header("TBW/day",  6, lambda x : x.avg.w_sum*86400/1000**3)
-        self.register_col_header("3.metric3",  6, lambda x : x.avg.throughput/x.avg.w_sum)
-        self.register_col_header("4.avg lat",  7, lambda x : round(x.r_latency_buckets.get_avg()))
+        self.register_col_header("[3]metric3",  6, lambda x : x.avg.throughput/x.avg.w_sum)
+        self.register_col_header("[4]99.9_lat",  7, lambda x : round(x.r_latency_buckets.get_n_percent(0.999)))
+        self.register_col_header("[4]avg_lat",  7, lambda x : round(x.r_latency_buckets.get_avg()))
         self.register_col_header("  read",   6, lambda x : x.avg.read//1000)
         self.register_col_header(" write",   6, lambda x : x.avg.write//1000)
         print()
@@ -133,6 +146,23 @@ class Analyzer(object):
         print("\033[31m", end="")
         self.print_cols(False)     
         print("\033[0m", end="")
+        
+        
+        ###histogram
+        
+        print("read", self.workloads[2].get_data(3).r_latency_buckets.get_total())
+        for i in range(1,100,2):
+            print("%4d%%: "%i, "*"*int(self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(i/100)//20), 
+                                       self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(i/100),"us")
+        print("99.9%", "*"*int(self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(0.999)//20), 
+                                    self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(0.999),"us")
+        
+        print("write", self.workloads[2].get_data(3).w_latency_buckets.get_total())
+        for i in range(1,100,2):
+            print("%3d%%: "%i, "*"*int(self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(i/100)//20), 
+                                       self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(i/100),"us")
+        print("99.9%", "*"*int(self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(0.999)//20), 
+                                    self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(0.999),"us")
 
     def print_cols(self, only_valid = True):
         for ps_str in self.full:
@@ -160,15 +190,19 @@ class Analyzer(object):
             [print("%3d"%(int(p)), end = "") for p in ps_str.strip().split(' ')]
             print(" ] ", end = '')
             
-            self.print_by_case(tasks, "1.MByte/s")
-            self.print_by_case(tasks, "2.Weighted", round_point=2)
-            self.print_by_case(tasks, "3.metric3", round_point=2)
-            self.print_by_case(tasks, "4.avg lat", avg = True)
+            self.print_by_case(tasks, "[1]MByte/s")
+            self.print_by_case(tasks, "[2]Weighted", round_point=2)
+            self.print_by_case(tasks, "[3]metric3", round_point=2)
+            self.print_by_case(tasks, "[4]99.9_lat", avg = True)
+            self.print_by_case(tasks, "[4]avg_lat", avg = True)
             self.print_by_case(tasks, "  read")
             self.print_by_case(tasks, " write")
             print()
             
     def print_by_workload(self, title, field_func):
+        
+        title = "[ "+title+" ]"
+        
         # get all sizes
         sizes = []
         for wl in self.workloads:
@@ -176,14 +210,14 @@ class Analyzer(object):
         sizes = list(set(sizes))
         sizes.sort()
         
-        print("[" , title, "]")
-        print("  workload", end = "")
+        print("│\33[1m"+str_w(title, ((len(sizes)+1)*10 + len(title))//2)+"\33[0m")
+        print("│  workload", end = "")
         for size in sizes:
             print("%10d"%(size), end = "")
         print()
         
         for workload in self.workloads:
-            print("%10s"%(workload.name), end = "")
+            print("│%10s"%(workload.name), end = "")
             for size in sizes:
                 data_file = workload.get_data(size)
                 if data_file == "-":
@@ -192,7 +226,7 @@ class Analyzer(object):
                     data = field_func(data_file)
                     print('%10s' % format(data, ','), end = "")
             print()     
-        print()
+        # print()
 
     def register_col_header(self, header, width, func):
         self.header_widths[header]  = len(header)
@@ -214,6 +248,9 @@ class Analyzer(object):
             data = round(values[value], round_point)
         else :
             data = round(values[value]/self.N, round_point)
+        if round_point == 0 :
+            data = int(data)
+            
         if data != 0 :
             print(str_w(format(data, ','), width_total), end = '')
         else :
