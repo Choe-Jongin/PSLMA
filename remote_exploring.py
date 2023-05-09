@@ -153,7 +153,7 @@ def copy_data_file(partitioning):
         
         # File Validation Check
         data_file = DataFile(data_file_name)        
-        if data_file.last_none_zero_line <= int(target_time)*0.9:
+        if data_file.last_none_zero_line <= int(target_time)*0.95:
             os.system("rm " + cpu_data_file_name)
             os.system("rm " +  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_*.data")
             os.system("rm " +  scenario_data_dir+"/"+get_workloads_str()+"_"+partitioning+"_*.read_latency")

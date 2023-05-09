@@ -110,13 +110,13 @@ class Analyzer(object):
         print("└──")
         
         print("┌── Detail Latency")
-        self.print_by_workload("avg read latnecy"       , lambda x : round(x.r_latency_buckets.get_avg()))
-        self.print_by_workload("10% read latnecy"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.1)))
-        self.print_by_workload("50% read latnecy"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.5)))
-        self.print_by_workload("90% read latnecy"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.9)))
-        self.print_by_workload("99% read latnecy"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.99)))
-        self.print_by_workload("99.9% read latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.999)))
-        self.print_by_workload("99.99% read latnecy"    , lambda x : round(x.r_latency_buckets.get_n_percent(0.9999)))
+        self.print_by_workload("avg read latency"       , lambda x : round(x.r_latency_buckets.get_avg()))
+        self.print_by_workload("10% read latency"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.1)))
+        self.print_by_workload("50% read latency"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.5)))
+        self.print_by_workload("90% read latency"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.9)))
+        self.print_by_workload("99% read latency"       , lambda x : round(x.r_latency_buckets.get_n_percent(0.99)))
+        self.print_by_workload("99.9% read latency"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.999)))
+        self.print_by_workload("99.99% read latency"    , lambda x : round(x.r_latency_buckets.get_n_percent(0.9999)))
         print("└──")
         
         ########################################################################
@@ -128,10 +128,9 @@ class Analyzer(object):
         print(" ] ", end = '')
         self.register_col_header("[1]MByte/s",  8, lambda x : x.avg.throughput//1000)
         self.register_col_header("[2]Weighted", 8, lambda x : x.avg.throughput/x.even_data_file.avg.throughput)
-        # self.register_col_header("TBW/day",  6, lambda x : x.avg.w_sum*86400/1000**3)
-        self.register_col_header("[3]metric3",  6, lambda x : x.avg.throughput/x.avg.w_sum)
-        self.register_col_header("[4]99.9_lat",  7, lambda x : round(x.r_latency_buckets.get_n_percent(0.999)))
-        self.register_col_header("[4]avg_lat",  7, lambda x : round(x.r_latency_buckets.get_avg()))
+        self.register_col_header("[3]Wear-out",  6, lambda x : x.tot.w_sum//1000**2)
+        self.register_col_header("[4]through*1/Wear-out",  6, lambda x : x.tot.throughput/x.tot.w_sum)
+        self.register_col_header("avg_lat",  7, lambda x : round(x.r_latency_buckets.get_avg()))
         self.register_col_header("  read",   6, lambda x : x.avg.read//1000)
         self.register_col_header(" write",   6, lambda x : x.avg.write//1000)
         print()
@@ -144,8 +143,7 @@ class Analyzer(object):
         print("\033[0m", end="")
         
         
-        ###histogram
-        
+        ### histogram   hardcoded
         # print("read", self.workloads[2].get_data(3).r_latency_buckets.get_total())
         # for i in range(1,100,2):
         #     print("%4d%%: "%i, "*"*int(self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(i/100)//20), 
@@ -188,9 +186,9 @@ class Analyzer(object):
             
             self.print_by_case(tasks, "[1]MByte/s")
             self.print_by_case(tasks, "[2]Weighted", round_point=2)
-            self.print_by_case(tasks, "[3]metric3", round_point=2)
-            self.print_by_case(tasks, "[4]99.9_lat", avg = True)
-            self.print_by_case(tasks, "[4]avg_lat", avg = True)
+            self.print_by_case(tasks, "[3]Wear-out")
+            self.print_by_case(tasks, "[4]through*1/Wear-out", round_point=2)
+            self.print_by_case(tasks, "avg_lat", avg = True)
             self.print_by_case(tasks, "  read")
             self.print_by_case(tasks, " write")
             print()
