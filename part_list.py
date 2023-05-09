@@ -49,10 +49,10 @@ if __name__ == '__main__':
     # test run(no arguments)      
     if len(sys.argv) <= 1 :
         
-        part_list(N=2, step=1, full=True, ch = 32)
-        part_list(N=3, step=1, full=True, ch = 32)
+        # part_list(N=2, step=1, full=True, ch = 32)
+        # part_list(N=3, step=1, full=True, ch = 32)
         part_list(N=4, step=1, full=True, ch = 32)
-        part_list(N=5, step=1, full=True, ch = 32)
+        # part_list(N=5, step=1, full=True, ch = 32)
         # print("-------------------------------------------")
         # part_list(N=2, step=1, full=True, ch = 16)
         # part_list(N=3, step=1, full=True, ch = 16)

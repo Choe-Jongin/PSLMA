@@ -99,8 +99,8 @@ class Analyzer(object):
         print("┌── Main Metrics")
         self.print_by_workload("Average Throughput/s", lambda x : round(x.avg.throughput))
         self.print_by_workload("Weighted", lambda x : round(x.avg.throughput/x.even_data_file.avg.throughput,2))
-        self.print_by_workload("METRIC3", lambda x : round(x.avg.throughput/x.avg.w_sum,2))
-        self.print_by_workload("99.9% read latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.999)))
+        self.print_by_workload("Wear-out", lambda x : round(x.tot.w_sum//1000**2))
+        self.print_by_workload("through*1/Wear-out"     , lambda x : round(x.tot.throughput/x.tot.w_sum,2))
         print("└──")
         
         print("┌── Detail Throughput")
@@ -135,13 +135,13 @@ class Analyzer(object):
         self.register_col_header(" write",   6, lambda x : x.avg.write//1000)
         print()
         
+        self.print_by_workload("Wear-out", lambda x : round(x.tot.w_sum//1000**2))
         # print valid partition
         self.print_cols(True)       
         # print invalid partition
         print("\033[31m", end="")
         self.print_cols(False)     
         print("\033[0m", end="")
-        
         
         ### histogram   hardcoded
         # print("read", self.workloads[2].get_data(3).r_latency_buckets.get_total())
@@ -170,6 +170,12 @@ class Analyzer(object):
                 datafile = ps_str+" "+str(dev)                  # partition + dev ex) 3_3_10 -> 3_3_10_0 ~ 3_3_10_2
                 if datafile in self.all_datafiles.keys():       # 3_3_10_0 in self.all_datafiles ??
                     tasks[dev] = self.all_datafiles[datafile]   # task[0] = 3_3_10_0.data ~ task[2] = 3_3_10_2.data 
+                    
+            # Greedy
+            # tasks={}
+            # for dev in range(self.N):                           # all dev(partition num)
+            #     size = int(ps_str.split(' ')[dev])                
+            #     tasks[dev] = self.workloads[dev].get_data(size)
                     
             for task in tasks.values():
                 for value in self.sum_of_values.keys():
@@ -299,8 +305,11 @@ def get_workload_name_from_dir(dir):
         for wl in dir[5:]:
             ret.append(wl)
     else :
-        for i in range(0, len(dir[5:]), 2):
-            ret.append(dir[5+i] + dir[5+i+1])
+        for i in range(5, len(dir[5:])+5, 2):
+            if dir[i] == "_":
+                break
+            ret.append(dir[i] + dir[i+1])
+        print("workload_names",ret)
     return ret
 
 if __name__ == '__main__':

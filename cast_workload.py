@@ -37,7 +37,10 @@ class Workload(object):
             print("size :", size, "\t|#", len(data_list))
             if len(data_list) == 0 :
                 continue
-            self.merged_data[size] = copy.deepcopy(data_list[0])
+            self.merged_data[size] = copy.deepcopy(data_list[0])    #first data file
+            
+            if len(data_list) == 1 :
+                continue
             
             #sum then divide
             for merge in data_list[1:]:
