@@ -7,22 +7,18 @@ from cast_data_file import DataFile
 from cast_latency_file import Latency_file
 
 class Analyzer(object):
-    
-    ssd = 64
-    ch = 16
-    ch_size = ssd//ch
-    step = ch_size
-    
-    def __init__(self, dir, names = [], s_time = -1, e_time = -1, step = 1):
+        
+    def __init__(self, dir, names = [], s_time = -1, e_time = -1, step = 1, ch = 16):
         self.N = len(names)
         self.names = names
-        self.full = pl.part_list(self.N, step, True)
+        self.full = pl.part_list(self.N, step, True, ch)
         self.workloads = []
         self.all_datafiles = {}
         self.total_read_file = 0
         self.total_read_failed = 0
         self.read_fail_scenarios = []
         self.s_time, self.e_time = s_time, e_time
+        self.ch = ch
         
         #set workload name
         for i in range(self.N):
@@ -65,7 +61,7 @@ class Analyzer(object):
             
             index = int(parsed[self.N])              # get device(part) name
             size  = int(parsed[index])          # get partition size  ex) index = 2 -> 3_3_[10]
-            even  = self.is_even_partition(self.N, parsed)
+            even  = self.is_even_partition(self.N, parsed, self.ch)
                 
             new_data_file = DataFile(filename)
             
@@ -104,7 +100,7 @@ class Analyzer(object):
         self.print_by_workload("Average Throughput/s", lambda x : round(x.avg.throughput))
         self.print_by_workload("Weighted", lambda x : round(x.avg.throughput/x.even_data_file.avg.throughput,2))
         self.print_by_workload("METRIC3", lambda x : round(x.avg.throughput/x.avg.w_sum,2))
-        self.print_by_workload("99.99% read latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.9999)))
+        self.print_by_workload("99.9% read latnecy"     , lambda x : round(x.r_latency_buckets.get_n_percent(0.999)))
         print("└──")
         
         print("┌── Detail Throughput")
@@ -150,19 +146,19 @@ class Analyzer(object):
         
         ###histogram
         
-        print("read", self.workloads[2].get_data(3).r_latency_buckets.get_total())
-        for i in range(1,100,2):
-            print("%4d%%: "%i, "*"*int(self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(i/100)//20), 
-                                       self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(i/100),"us")
-        print("99.9%", "*"*int(self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(0.999)//20), 
-                                    self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(0.999),"us")
+        # print("read", self.workloads[2].get_data(3).r_latency_buckets.get_total())
+        # for i in range(1,100,2):
+        #     print("%4d%%: "%i, "*"*int(self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(i/100)//20), 
+        #                                self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(i/100),"us")
+        # print("99.9%", "*"*int(self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(0.999)//20), 
+        #                             self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(0.999),"us")
         
-        print("write", self.workloads[2].get_data(3).w_latency_buckets.get_total())
-        for i in range(1,100,2):
-            print("%3d%%: "%i, "*"*int(self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(i/100)//20), 
-                                       self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(i/100),"us")
-        print("99.9%", "*"*int(self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(0.999)//20), 
-                                    self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(0.999),"us")
+        # print("write", self.workloads[2].get_data(3).w_latency_buckets.get_total())
+        # for i in range(1,100,2):
+        #     print("%3d%%: "%i, "*"*int(self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(i/100)//20), 
+        #                                self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(i/100),"us")
+        # print("99.9%", "*"*int(self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(0.999)//20), 
+        #                             self.workloads[2].get_data(3).w_latency_buckets.get_n_percent(0.999),"us")
 
     def print_cols(self, only_valid = True):
         for ps_str in self.full:
@@ -266,18 +262,34 @@ class Analyzer(object):
         print(" | ", end = '')
     
     #### utils ####            
-    def is_even_partition(self, N, partitions):
-        if N == 2 and partitions[:2] == ["8", "8"]:
-            return True
-        elif N == 3 and partitions[:3] == ["5", "5", "6"]:
-            return True
-        elif N == 4 and partitions[:4] == ["4", "4", "4", "4"]:
-            return True
-        elif N == 5 and partitions[:5] == ["3", "3", "3", "3", "4"]:
-            return True
-        elif N == 6 and partitions[:6] == ["2", "2", "3", "3", "3", "3"]:
-            return True
-        return False
+    def is_even_partition(self, N, partitions, ch = 16):
+        
+        if ch == 16 :
+            if N == 2 and partitions[:2] == ["8", "8"]:
+                return True
+            elif N == 3 and partitions[:3] == ["5", "5", "6"]:
+                return True
+            elif N == 4 and partitions[:4] == ["4", "4", "4", "4"]:
+                return True
+            elif N == 5 and partitions[:5] == ["3", "3", "3", "3", "4"]:
+                return True
+            elif N == 6 and partitions[:6] == ["2", "2", "3", "3", "3", "3"]:
+                return True
+            return False
+        
+        if ch == 32 :
+            if N == 2 and partitions[:2] == ["16", "16"]:
+                return True
+            elif N == 3 and partitions[:3] == ["10", "11", "11"]:
+                return True
+            elif N == 4 and partitions[:4] == ["8", "8", "8", "8"]:
+                return True
+            elif N == 5 and partitions[:5] == ["6", "6", "6", "7", "7"]:
+                return True
+            elif N == 6 and partitions[:6] == ["5", "5", "5", "5", "6", "6"]:
+                return True
+            return False
+
 
 def get_workload_name_from_dir(dir):
     dir = os.path.basename(dir)
@@ -300,6 +312,7 @@ if __name__ == '__main__':
     s_time = -1
     e_time = -1
     step = 1
+    ch = 16
     
     if len(sys.argv) == 1 :
         pass
@@ -334,6 +347,8 @@ if __name__ == '__main__':
                 e_time = int(sys.argv[i+1])
             if sys.argv[i] == "-step" :      
                 step = int(sys.argv[i+1])
+            if sys.argv[i] == "-ch" :      
+                ch = int(sys.argv[i+1])
                 
     #make Analyzer
-    analyzer = Analyzer(dir, workload_names, s_time, e_time, step)
+    analyzer = Analyzer(dir, workload_names, s_time, e_time, step, ch)

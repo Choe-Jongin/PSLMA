@@ -17,7 +17,7 @@ class Latency_file(object):
             if  word.isdigit():
                 self.array.append(int(word))
         # print(len(self.array), end =" ")
-        self.array = self.array[:750]
+        self.array = self.array[:700]
         self.type = 0       # 1024, 512, 256        
         file.close()
         
