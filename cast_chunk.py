@@ -77,7 +77,7 @@ class Chunk(object):
             self.r_device   += other.r_device
             self.w_user     += other.w_user
             self.w_gc       += other.w_gc
-            self.w_sum       += other.w_sum
+            self.w_sum      += other.w_sum
             
             self.calculate_detail()
     

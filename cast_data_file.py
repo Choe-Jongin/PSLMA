@@ -94,14 +94,14 @@ class DataFile(object):
         if (self.e_time > other.e_time):
             self.e_time = other.e_time 
             
-        for i in range(self.s_time, self.e_time):
+        for i in range(0, self.e_time):
             self.chunks[i].add_other(other.chunks[i])
             
         self.r_latency_buckets.add(other.r_latency_buckets)
         self.w_latency_buckets.add(other.w_latency_buckets)
             
     def divide(self, num):
-        for i in range(self.s_time, self.e_time):
+        for i in range(0, self.e_time):
             self.chunks[i].divide(num)
         self.r_latency_buckets.divide(num)
         self.w_latency_buckets.divide(num)
@@ -113,6 +113,10 @@ class DataFile(object):
         
         if len(self.chunks) == 0 or num == 0 :
             return "no chunks"
+        
+        self.avg = Chunk()          # average of chunks         : object
+        self.tot = Chunk()          # total value of chunks     : object
+        self.peak = self.chunks[0]
         
         for chunk in self.chunks[start:end]:
             

@@ -24,7 +24,7 @@ def part_list(N, step = 1, full = False, ch = 16):
     
     if full == False:
         #find minimum partition set
-        minimum_sols    = get_minimum_partition_set_list(N, min, max, step, all_solutions)
+        minimum_sols    = get_minimum_partition_set_list(N, ch, min, max, step, all_solutions)
         validity_dict   = count_each_part(N, minimum_sols, min, max, step)
         psl = minimum_sols
 
@@ -35,6 +35,7 @@ def part_list(N, step = 1, full = False, ch = 16):
             mount_str += str(p) + " "
         mount_str = mount_str[:-1]
         # print("[",mount_str,"]")
+        # print("cp M1R4W1W2_*", mount_str.replace(" ","_"), "* ../data_M1R4W1W2_greedy/", sep ="")
         ret.append(mount_str)
     print("Case :", len(ret))
     
@@ -51,7 +52,7 @@ if __name__ == '__main__':
         
         # part_list(N=2, step=1, full=True, ch = 32)
         # part_list(N=3, step=1, full=True, ch = 32)
-        part_list(N=4, step=1, full=True, ch = 32)
+        # part_list(N=4, step=1, full=False, ch = 32)
         # part_list(N=5, step=1, full=True, ch = 32)
         # print("-------------------------------------------")
         # part_list(N=2, step=1, full=True, ch = 16)
@@ -73,27 +74,27 @@ if __name__ == '__main__':
         # part_list(N=10, step=2, full=True, ch = 64)
         # part_list(N=12, step=2, full=True, ch = 64)
         
-        # print("-------------------------------------------")
-        # print("Greedy")
-        # part_list(N=2, step=1, full=False, ch = 16)
-        # part_list(N=3, step=1, full=False, ch = 16)
-        # part_list(N=4, step=1, full=False, ch = 16)
-        # part_list(N=5, step=1, full=False, ch = 16)
-        # part_list(N=6, step=1, full=False, ch = 32)
-        # part_list(N=8, step=1, full=False, ch = 32)
-        # part_list(N=10, step=1, full=False, ch = 64)
-        # part_list(N=12, step=1, full=False, ch = 64)
+        print("-------------------------------------------")
+        print("Greedy")
+        part_list(N=2, step=1, full=False, ch = 16)
+        part_list(N=3, step=1, full=False, ch = 16)
+        part_list(N=4, step=1, full=False, ch = 16)
+        part_list(N=5, step=1, full=False, ch = 16)
+        part_list(N=6, step=1, full=False, ch = 32)
+        part_list(N=8, step=1, full=False, ch = 32)
+        part_list(N=10, step=1, full=False, ch = 64)
+        part_list(N=12, step=1, full=False, ch = 64)
         
-        # print("-------------------------------------------")
-        # print("Greedy")
-        # part_list(N=2, step=2, full=False, ch = 16)
-        # part_list(N=3, step=2, full=False, ch = 16)
-        # part_list(N=4, step=2, full=False, ch = 16)
-        # part_list(N=5, step=2, full=False, ch = 16)
-        # part_list(N=6, step=2, full=False, ch = 32)
-        # part_list(N=8, step=2, full=False, ch = 32)
-        # part_list(N=10, step=2, full=False, ch = 64)
-        # part_list(N=12, step=2, full=False, ch = 64)
+        print("-------------------------------------------")
+        print("Greedy")
+        part_list(N=2, step=2, full=False, ch = 16)
+        part_list(N=3, step=2, full=False, ch = 16)
+        part_list(N=4, step=2, full=False, ch = 16)
+        part_list(N=5, step=2, full=False, ch = 16)
+        part_list(N=6, step=2, full=False, ch = 32)
+        part_list(N=8, step=2, full=False, ch = 32)
+        part_list(N=10, step=2, full=False, ch = 64)
+        part_list(N=12, step=2, full=False, ch = 64)
             
     elif len(sys.argv) <= 2 :
         part_list(N=int(sys.argv[1]), step=1)

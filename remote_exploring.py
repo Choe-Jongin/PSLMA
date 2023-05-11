@@ -8,8 +8,10 @@ from cast_data_file import DataFile
 
 #global settings
 DATA_DIR="~/data"
-FEMU_ID_IP="-p 8080 femu@166.104.246.86"
-REMOTE_ID_IP="jongin@166.104.246.86"
+# FEMU_ID_IP="-p 8080 femu@166.104.246.86"
+# REMOTE_ID_IP="jongin@166.104.246.86"
+FEMU_ID_IP="-p 8080 femu@166.104.246.87"
+REMOTE_ID_IP="femu@166.104.246.87"
 
 SCRIPT_DIR="/scripts"
 workloads={}
@@ -28,8 +30,8 @@ workloads['W3'] = "filebench-varmail"
 workloads['W4'] = "vdbench-write"
 
 workloads['L1'] = "cachebench_graph"
-workloads['L2'] = "cachebench_reg"
-workloads['L3'] = "cachebench_wc"
+workloads['L2'] = "cachebench_wc"
+workloads['L3'] = "cachebench_reg"
 
 pre=[]
 run=[]

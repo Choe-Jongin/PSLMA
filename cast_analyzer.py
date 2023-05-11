@@ -97,15 +97,15 @@ class Analyzer(object):
         print("-"*80)
         # avg by each size for workload
         print("┌── Main Metrics")
-        self.print_by_workload("Average Throughput/s", lambda x : round(x.avg.throughput))
-        self.print_by_workload("Weighted", lambda x : round(x.avg.throughput/x.even_data_file.avg.throughput,2))
-        self.print_by_workload("Wear-out", lambda x : round(x.tot.w_sum//1000**2))
-        self.print_by_workload("through*1/Wear-out"     , lambda x : round(x.tot.throughput/x.tot.w_sum,2))
+        self.print_by_workload("Average Throughput(KB/s)", lambda x : round(x.avg.throughput))
+        self.print_by_workload("Weighted", lambda x : round(x.avg.throughput/x.even_data_file.avg.throughput,3))
+        self.print_by_workload("Wear-out(MB)", lambda x : round(x.tot.w_sum//1000))
+        self.print_by_workload("through*1/Wear-out"     , lambda x : round(x.tot.throughput/x.tot.w_sum,3))
         print("└──")
         
         print("┌── Detail Throughput")
-        self.print_by_workload("Average write/s"    , lambda x : round(x.avg.write))
-        self.print_by_workload("Average read/s"     , lambda x : round(x.avg.read))
+        self.print_by_workload("Average read(KB/s)"     , lambda x : round(x.avg.read))
+        self.print_by_workload("Average write(KB/s)"    , lambda x : round(x.avg.write))
         self.print_by_workload("Average WAF"        , lambda x : round(x.avg.waf*100))
         print("└──")
         
@@ -126,16 +126,15 @@ class Analyzer(object):
         print("[", end = "")
         [print("%3s"%(wl), end = "") for wl in self.names]
         print(" ] ", end = '')
-        self.register_col_header("[1]MByte/s",  8, lambda x : x.avg.throughput//1000)
+        self.register_col_header("[1]Throughput(MB/s)",  8, lambda x : x.avg.throughput//1000)
         self.register_col_header("[2]Weighted", 8, lambda x : x.avg.throughput/x.even_data_file.avg.throughput)
-        self.register_col_header("[3]Wear-out",  6, lambda x : x.tot.w_sum//1000**2)
-        self.register_col_header("[4]through*1/Wear-out",  6, lambda x : x.tot.throughput/x.tot.w_sum)
-        self.register_col_header("avg_lat",  7, lambda x : round(x.r_latency_buckets.get_avg()))
-        self.register_col_header("  read",   6, lambda x : x.avg.read//1000)
-        self.register_col_header(" write",   6, lambda x : x.avg.write//1000)
+        self.register_col_header("[3]Wear-out(MB)", 9, lambda x : x.tot.w_sum//1000)
+        self.register_col_header("[4]through*1/Wear-out",  8, lambda x : x.tot.throughput/x.tot.w_sum)
+        self.register_col_header("lat(99.9%)",  7, lambda x : round(x.r_latency_buckets.get_n_percent(0.999)))
+        self.register_col_header(" read(MB/s)",   6, lambda x : x.avg.read//1000)
+        self.register_col_header("write(MB/s)",   6, lambda x : x.avg.write//1000)
         print()
         
-        self.print_by_workload("Wear-out", lambda x : round(x.tot.w_sum//1000**2))
         # print valid partition
         self.print_cols(True)       
         # print invalid partition
@@ -144,12 +143,20 @@ class Analyzer(object):
         print("\033[0m", end="")
         
         ### histogram   hardcoded
-        # print("read", self.workloads[2].get_data(3).r_latency_buckets.get_total())
+        # print("read", self.workloads[0].get_data(3).r_latency_buckets.get_total())
         # for i in range(1,100,2):
-        #     print("%4d%%: "%i, "*"*int(self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(i/100)//20), 
-        #                                self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(i/100),"us")
-        # print("99.9%", "*"*int(self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(0.999)//20), 
-        #                             self.workloads[2].get_data(3).r_latency_buckets.get_n_percent(0.999),"us")
+        #     print("%4d%%: "%i, "*"*int(self.workloads[0].get_data(3).r_latency_buckets.get_n_percent(i/100)//20), 
+        #                                self.workloads[0].get_data(3).r_latency_buckets.get_n_percent(i/100),"us")
+        # print("99.9%", "*"*int(self.workloads[0].get_data(3).r_latency_buckets.get_n_percent(0.999)//20), 
+        #                             self.workloads[0].get_data(3).r_latency_buckets.get_n_percent(0.999),"us")
+        
+        # print("read", self.workloads[1].get_data(3).r_latency_buckets.get_total())
+        # for i in range(1,100,2):
+        #     print("%4d%%: "%i, "*"*int(self.workloads[1].get_data(3).r_latency_buckets.get_n_percent(i/100)//20), 
+        #                                self.workloads[1].get_data(3).r_latency_buckets.get_n_percent(i/100),"us")
+        # print("99.9%", "*"*int(self.workloads[1].get_data(3).r_latency_buckets.get_n_percent(0.999)//20), 
+        #                             self.workloads[1].get_data(3).r_latency_buckets.get_n_percent(0.999),"us")
+        
         
         # print("write", self.workloads[2].get_data(3).w_latency_buckets.get_total())
         # for i in range(1,100,2):
@@ -171,7 +178,7 @@ class Analyzer(object):
                 if datafile in self.all_datafiles.keys():       # 3_3_10_0 in self.all_datafiles ??
                     tasks[dev] = self.all_datafiles[datafile]   # task[0] = 3_3_10_0.data ~ task[2] = 3_3_10_2.data 
                     
-            # Greedy
+            # Greedy  #########################################################################################################################
             # tasks={}
             # for dev in range(self.N):                           # all dev(partition num)
             #     size = int(ps_str.split(' ')[dev])                
@@ -190,13 +197,13 @@ class Analyzer(object):
             [print("%3d"%(int(p)), end = "") for p in ps_str.strip().split(' ')]
             print(" ] ", end = '')
             
-            self.print_by_case(tasks, "[1]MByte/s")
-            self.print_by_case(tasks, "[2]Weighted", round_point=2)
-            self.print_by_case(tasks, "[3]Wear-out")
-            self.print_by_case(tasks, "[4]through*1/Wear-out", round_point=2)
-            self.print_by_case(tasks, "avg_lat", avg = True)
-            self.print_by_case(tasks, "  read")
-            self.print_by_case(tasks, " write")
+            self.print_by_case(tasks, "[1]Throughput(MB/s)")
+            self.print_by_case(tasks, "[2]Weighted", round_point=3)
+            self.print_by_case(tasks, "[3]Wear-out(MB)")
+            self.print_by_case(tasks, "[4]through*1/Wear-out", round_point=3)
+            self.print_by_case(tasks, "lat(99.9%)", avg = True)
+            self.print_by_case(tasks, " read(MB/s)")
+            self.print_by_case(tasks, "write(MB/s)")
             print()
             
     def print_by_workload(self, title, field_func):
