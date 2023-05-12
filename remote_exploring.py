@@ -176,11 +176,13 @@ def exploing(psl):
     print(pre)
     print(run)
     
-    for ps in psl:
-        test = True
-        retry_count = 0
-        while test:
-            test = False
+    retry_list = []
+    retry = 0
+
+    while psl != [] :
+        for ps in psl:
+            test = True
+            retry_count = 0
             print("\033[01m\033[31mAllocation("+str(psl.index(ps)+1) + "/" + str(len(psl))+") : " + ps, "\033[0m")
             print("start FEMU VM")
             time.sleep(3)
@@ -195,6 +197,7 @@ def exploing(psl):
             
             #terminal correcting
             os.system("stty sane")
+
 
             #ssh test
             ssh_exec("echo FEMU VM connected")
@@ -231,10 +234,8 @@ def exploing(psl):
                 print(ps, "Fail...")
                 retry_count += 1
                 print("\033[01m\033[31mretry", retry_count,"\033[0m")
-                test = True
-            else :
-                retry_count = 0
-            
+                retry_list.append(ps)
+                
             #unmount
             #time.sleep(10)
             # unmount_thr = multiprocessing.Process(target=ssh_exec, args=('sudo /unmount.sh',))
@@ -245,11 +246,22 @@ def exploing(psl):
             #     else :
             #         break
             
-            #shutdown 
+            #shutdown
             print("shutdown FEMU VM")
             ssh_exec("sudo shutdown now")
 
             time.sleep(20)
+        
+        #finish psl
+        psl = []
+
+        #if remain retry
+        if retry_list != [] :
+            psl = retry_list
+            retry+=1
+            print(retry_list)
+            print("Retry", retry)
+
 
 #### entry point ####
 def main():
