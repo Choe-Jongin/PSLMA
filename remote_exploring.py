@@ -261,6 +261,7 @@ def exploing(psl):
             retry+=1
             print(retry_list)
             print("Retry", retry)
+            retry_list = []
 
 
 #### entry point ####
