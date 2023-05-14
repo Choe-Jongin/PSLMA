@@ -129,7 +129,8 @@ class Analyzer(object):
         self.register_col_header("[1]Throughput(MB/s)",  8, lambda x : x.avg.throughput//1000)
         self.register_col_header("[2]Weighted", 8, lambda x : x.avg.throughput/x.even_data_file.avg.throughput)
         self.register_col_header("[3]Wear-out(MB)", 9, lambda x : x.tot.w_sum//1000)
-        self.register_col_header("[4]through*1/Wear-out",  8, lambda x : x.tot.throughput/x.tot.w_sum)
+        self.register_col_header("[4]total_through/wearout", 7, lambda x : x.tot.throughput, print_each = False)
+        self.register_col_header("[4]Weighted(through*life)", 7, lambda x : (x.avg.throughput/x.even_data_file.avg.throughput)/(x.avg.w_sum/x.even_data_file.avg.w_sum))
         self.register_col_header("lat(99.9%)",  7, lambda x : round(x.r_latency_buckets.get_n_percent(0.999)))
         self.register_col_header(" read(MB/s)",   6, lambda x : x.avg.read//1000)
         self.register_col_header("write(MB/s)",   6, lambda x : x.avg.write//1000)
@@ -200,7 +201,8 @@ class Analyzer(object):
             self.print_by_case(tasks, "[1]Throughput(MB/s)")
             self.print_by_case(tasks, "[2]Weighted", round_point=3)
             self.print_by_case(tasks, "[3]Wear-out(MB)")
-            self.print_by_case(tasks, "[4]through*1/Wear-out", round_point=3)
+            self.print_by_case(tasks, "[4]total_through/wearout", round_point=3, sum_opt = lambda x : x.tot.w_sum, print_each = False)
+            self.print_by_case(tasks, "[4]Weighted(through*life)", round_point=3)
             self.print_by_case(tasks, "lat(99.9%)", avg = True)
             self.print_by_case(tasks, " read(MB/s)")
             self.print_by_case(tasks, "write(MB/s)")
@@ -235,17 +237,18 @@ class Analyzer(object):
             print()     
         # print()
 
-    def register_col_header(self, header, width, func):
+    def register_col_header(self, header, width, func, print_each = True):
         self.header_widths[header]  = len(header)
         self.row_widths[header]     = width
         self.func_dict[header]      = func
         self.sum_of_values[header]  = 0
         
         print(header, end ='')
-        [print(str_w(name, width), sep="", end = "") for name in self.names]
+        if print_each :
+            [print(str_w(name, width), sep="", end = "") for name in self.names]
         print(" | ", end = "")
         
-    def print_by_case(self, tasks, value, round_point = 0, avg = False):
+    def print_by_case(self, tasks, value, round_point = 0, avg = False, sum_opt = None, print_each=True):
         width_total = self.header_widths[value]
         width_each  = self.row_widths[value]
         values, funcs = self.sum_of_values, self.func_dict
@@ -255,6 +258,14 @@ class Analyzer(object):
             data = round(values[value], round_point)
         else :
             data = round(values[value]/self.N, round_point)
+        
+        opt_data = 0
+        if sum_opt != None:
+            for i in range(self.N):
+                if i in tasks.keys():
+                    opt_data += sum_opt(tasks[i])
+            data = round(values[value]/opt_data, round_point)
+                    
         if round_point == 0 :
             data = int(data)
             
@@ -264,12 +275,13 @@ class Analyzer(object):
             print(str_w("-", width_total), end = '')
         
         #each
-        for i in range(self.N):
-            if i in tasks.keys():
-                data = round(funcs[value](tasks[i]), round_point)
-                print(str_w(format(data, ','), width_each), end = '')
-            else:
-                print(str_w("-", width_each), end = '')
+        if print_each:
+            for i in range(self.N):
+                if i in tasks.keys():
+                    data = round(funcs[value](tasks[i]), round_point)
+                    print(str_w(format(data, ','), width_each), end = '')
+                else:
+                    print(str_w("-", width_each), end = '')
         print(" | ", end = '')
     
     #### utils ####            

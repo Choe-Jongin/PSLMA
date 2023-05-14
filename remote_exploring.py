@@ -8,10 +8,10 @@ from cast_data_file import DataFile
 
 #global settings
 DATA_DIR="~/data"
-# FEMU_ID_IP="-p 8080 femu@166.104.246.86"
-# REMOTE_ID_IP="jongin@166.104.246.86"
-FEMU_ID_IP="-p 8080 femu@166.104.246.87"
-REMOTE_ID_IP="femu@166.104.246.87"
+FEMU_ID_IP="-p 8080 femu@166.104.246.86"
+REMOTE_ID_IP="jongin@166.104.246.86"
+# FEMU_ID_IP="-p 8080 femu@166.104.246.87"
+# REMOTE_ID_IP="femu@166.104.246.87"
 
 SCRIPT_DIR="/scripts"
 workloads={}
