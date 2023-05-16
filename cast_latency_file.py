@@ -22,7 +22,7 @@ class Latency_file(object):
         file.close()
         
     def get_total(self):
-        total = 0
+        total = 1
         for location in self.array:
             total+=location
         return total
@@ -47,6 +47,7 @@ class Latency_file(object):
                 return int(latency + ((prev_location-per_location)/self.array[i])*5)
             else :
                 continue
+        return 0.0
             
     def get_latency(self, i):
         if self.type == 0 :

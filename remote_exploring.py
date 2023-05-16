@@ -177,12 +177,11 @@ def exploing(psl):
     print(run)
     
     retry_list = []
-    retry = 0
+    retry = 1
 
     while psl != [] :
         for ps in psl:
             test = True
-            retry_count = 0
             print("\033[01m\033[31mAllocation("+str(psl.index(ps)+1) + "/" + str(len(psl))+") : " + ps, "\033[0m")
             print("start FEMU VM")
             time.sleep(3)
@@ -232,9 +231,9 @@ def exploing(psl):
             #copy data
             if copy_data_file(ps) == "retry":
                 print(ps, "Fail...")
-                retry_count += 1
-                print("\033[01m\033[31mretry", retry_count,"\033[0m")
                 retry_list.append(ps)
+                print(retry, "retry list :", retry_list)
+                print(retry, "retry case :", len(retry_list))
                 
             #unmount
             #time.sleep(10)
@@ -258,9 +257,10 @@ def exploing(psl):
         #if remain retry
         if retry_list != [] :
             psl = retry_list
-            retry+=1
-            print(retry_list)
+            print(retry, "retry list :", retry_list)
+            print(retry, "retry case :", len(retry_list))
             print("Retry", retry)
+            retry+=1
             retry_list = []
 
 
