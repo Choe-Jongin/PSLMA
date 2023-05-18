@@ -30,6 +30,8 @@ class DataFile(object):
         self.s_time = 0
         self.e_time = 0
         self.set_period(0, len(self.chunks))
+    def get_length(self):
+        return self.e_time - self.s_time
         
     def set_period(self, s = -1, e = -1):
         if s >= 0 : self.s_time = s
